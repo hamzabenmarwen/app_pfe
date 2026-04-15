@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Catalog as Catalog Service
+    participant DB as PostgreSQL
+
+    Client->>Frontend: Ouvre la page /menu
+    Frontend->>Gateway: GET /api/plats?page=1&limit=12
+    Gateway->>Catalog: Proxy requête
+    Catalog->>DB: SELECT plats JOIN categories
+    DB-->>Catalog: Liste des plats avec catégories
+    Catalog-->>Gateway: {plats[], pagination}
+    Gateway-->>Frontend: 200 OK
+    Frontend-->>Client: Affiche grille des plats
+
+    Client->>Frontend: Sélectionne une catégorie
+    Frontend->>Gateway: GET /api/plats?categoryId=xxx
+    Gateway->>Catalog: Proxy requête
+    Catalog->>DB: SELECT plats WHERE categoryId
+    DB-->>Catalog: Plats filtrés
+    Catalog-->>Frontend: {plats[]}
+    Frontend-->>Client: Affiche plats filtrés
+
+    Client->>Frontend: Clique sur un plat
+    Frontend->>Gateway: GET /api/plats/:id
+    Gateway->>Catalog: Proxy requête
+    Catalog->>DB: SELECT plat + allergènes
+    DB-->>Catalog: Détail du plat
+    Catalog-->>Frontend: {plat, allergens[]}
+    Frontend-->>Client: Affiche page détail du plat

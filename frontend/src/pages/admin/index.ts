@@ -1,0 +1,26 @@
+export { default as AdminDashboard } from './AdminDashboard';
+export { default as AdminCategoriesPage } from './AdminCategoriesPage';
+export { default as AdminPlatsPage } from './AdminPlatsPage';
+export { default as AdminOrdersPage } from './AdminOrdersPage';
+export { default as AdminEventsPage } from './AdminEventsPage';
+export { default as AdminQuotesPage } from './AdminQuotesPage';
+export { default as AdminUsersPage } from './AdminUsersPage';
+export { default as AdminStatsPage } from './AdminStatsPage';
+export { default as AdminSettingsPage } from './AdminSettingsPage';
+export { default as AdminHealthPage } from './AdminHealthPage';
+export { default as AdminCalendarPage } from './AdminCalendarPage';
+export { default as AdminStockPage } from './AdminStockPage';
+export { default as AdminEventDetailsPage } from './AdminEventDetailsPage';
+export { default as AdminModulePlaceholderPage } from './AdminModulePlaceholderPage';
+export { default as AdminStockMovementsPage } from './AdminStockMovementsPage';
+export { default as AdminStockTakePage } from './AdminStockTakePage';
+export { default as AdminSuppliersPage } from './AdminSuppliersPage';
+export { default as AdminInvoicesPage } from './AdminInvoicesPage';
+export { default as AdminPurchaseOrdersPage } from './AdminPurchaseOrdersPage';
+export { default as AdminExpensesPage } from './AdminExpensesPage';
+export { default as AdminAuditLogsPage } from './AdminAuditLogsPage';
+export { default as AdminCreditNotesPage } from './AdminCreditNotesPage';
+export { default as AdminAIScannerPage } from './AdminAIScannerPage';
+export { default as AdminReportGeneratorPage } from './AdminReportGeneratorPage';
+export { default as AdminAIReportPage } from './AdminAIReportPage';
+

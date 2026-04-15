@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Event as Event Service
+    participant DB as PostgreSQL
+
+    Client->>Frontend: Remplit formulaire événement
+    Note right of Frontend: Type, titre, date, nb invités,<br/>budget, description, adresse
+    Frontend->>Gateway: POST /api/events
+    Gateway->>Event: Proxy requête (JWT vérifié)
+    Event->>Event: Validation des données (Zod)
+    Event->>DB: INSERT INTO events (status: PENDING)
+    DB-->>Event: Événement créé
+    Event-->>Gateway: {event}
+    Gateway-->>Frontend: 201 Created
+    Frontend-->>Client: "Demande envoyée avec succès"
+
+    Note over Client,DB: Le client peut suivre sa demande
+
+    Client->>Frontend: Consulte /dashboard/events
+    Frontend->>Gateway: GET /api/events/my-events
+    Gateway->>Event: Proxy requête
+    Event->>DB: SELECT events WHERE userId
+    DB-->>Event: Liste des événements
+    Event-->>Frontend: {events[]}
+    Frontend-->>Client: Affiche suivi des demandes

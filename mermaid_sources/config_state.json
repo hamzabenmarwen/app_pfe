@@ -1,0 +1,17 @@
+{
+  "theme": "neutral",
+  "themeVariables": {
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#000000",
+    "primaryBorderColor": "#000000",
+    "lineColor": "#000000",
+    "secondaryColor": "#ffffff",
+    "tertiaryColor": "#f0f0f0",
+    "textColor": "#000000",
+    "fontSize": "16px"
+  },
+  "state": {
+    "edgeType": "linear",
+    "defaultRenderer": "dagre-wrapper"
+  }
+}

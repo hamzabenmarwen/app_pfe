@@ -1,0 +1,44 @@
+sequenceDiagram
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Order as Order Service
+    participant Flouci as Flouci API
+    participant DB as PostgreSQL
+
+    Client->>Frontend: Valide le panier (checkout)
+    Frontend->>Gateway: POST /api/orders
+    Note right of Frontend: {items[], deliveryAddress, deliveryDate, paymentMethod}
+    Gateway->>Order: Proxy requête (JWT vérifié)
+    Order->>Order: Calcule sous-total, TVA 19%, frais livraison
+    Order->>DB: INSERT order + order_items
+    DB-->>Order: Commande créée (status: PENDING)
+    Order->>DB: INSERT invoice
+    Order-->>Gateway: {order, invoice}
+    Gateway-->>Frontend: 201 Created
+
+    alt paymentMethod == FLOUCI
+        Frontend->>Gateway: POST /api/payments/flouci/initiate
+        Gateway->>Order: {orderId}
+        Order->>DB: INSERT payment (method: FLOUCI, status: PENDING)
+        Order->>Flouci: POST /generate_payment (montant en millimes)
+        Flouci-->>Order: {paymentUrl, payment_id}
+        Order-->>Frontend: {paymentUrl}
+        Frontend->>Client: Redirection vers Flouci
+        Client->>Flouci: Effectue le paiement en ligne
+        Flouci-->>Frontend: Retour (success_link)
+        Frontend->>Gateway: GET /api/payments/flouci/verify/:id
+        Gateway->>Order: Vérification
+        Order->>Flouci: GET /verify_payment/:id
+        Flouci-->>Order: {status: SUCCESS}
+        Order->>DB: UPDATE payment status = COMPLETED
+        Order->>DB: UPDATE order status = CONFIRMED
+        Order-->>Frontend: {verified: true}
+    else paymentMethod == CASH
+        Frontend->>Gateway: POST /api/payments/create
+        Gateway->>Order: {orderId}
+        Order->>DB: INSERT payment (method: CASH, status: PENDING)
+        Order-->>Frontend: Paiement en attente à la livraison
+    end
+
+    Frontend-->>Client: Confirmation de commande

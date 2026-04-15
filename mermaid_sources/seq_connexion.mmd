@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Auth as Auth Service
+    participant DB as PostgreSQL
+
+    Client->>Frontend: Saisit email + mot de passe
+    Frontend->>Gateway: POST /api/auth/login
+    Gateway->>Auth: Proxy requête
+    Auth->>DB: SELECT user WHERE email
+    DB-->>Auth: Utilisateur trouvé
+    Auth->>Auth: Vérifie le hash (bcrypt.compare)
+    alt Mot de passe correct
+        Auth->>Auth: Génère Access Token (15min)
+        Auth->>Auth: Génère Refresh Token (7j)
+        Auth->>DB: Sauvegarde Refresh Token
+        Auth-->>Gateway: {accessToken, refreshToken, user}
+        Gateway-->>Frontend: 200 OK
+        Frontend->>Frontend: Stocke tokens (localStorage)
+        Frontend-->>Client: Redirection dashboard
+    else Mot de passe incorrect
+        Auth-->>Gateway: 401 Identifiants invalides
+        Gateway-->>Frontend: Erreur
+        Frontend-->>Client: Affiche message d'erreur
+    end

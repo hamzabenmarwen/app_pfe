@@ -1,0 +1,48 @@
+flowchart LR
+    subgraph Acteurs[" "]
+        direction TB
+        Visiteur["<div style='text-align:center'><svg width='30' height='40' stroke='black' stroke-width='2' fill='none'><circle cx='15' cy='8' r='5'/><line x1='15' y1='13' x2='15' y2='25'/><line x1='5' y1='18' x2='25' y2='18'/><line x1='15' y1='25' x2='8' y2='38'/><line x1='15' y1='25' x2='22' y2='38'/></svg><br/>Visiteur</div>"]
+        Client["<div style='text-align:center'><svg width='30' height='40' stroke='black' stroke-width='2' fill='none'><circle cx='15' cy='8' r='5'/><line x1='15' y1='13' x2='15' y2='25'/><line x1='5' y1='18' x2='25' y2='18'/><line x1='15' y1='25' x2='8' y2='38'/><line x1='15' y1='25' x2='22' y2='38'/></svg><br/>Client</div>"]
+    end
+
+    subgraph system["Système Assiette Gala - Cas d'utilisation globaux (Front-office)"]
+        direction TB
+        UC1(["Consulter le catalogue"])
+        UC2(["Rechercher un plat"])
+        UC3(["Filtrer par catégorie"])
+        UC4(["S'inscrire"])
+        UC5(["Se connecter"])
+        UC6(["Ajouter au panier"])
+        UC7(["Passer une commande"])
+        UC8(["Suivre mes commandes"])
+        UC9(["Télécharger facture"])
+        UC10(["Soumettre demande événement"])
+        UC11(["Suivre mes événements"])
+        UC12(["Accepter / Refuser devis"])
+        UC13(["Poser question au chatbot"])
+        UC14(["Modifier profil"])
+        UC15(["Gérer adresses"])
+        UC16(["Consulter recommandations"])
+    end
+
+    Visiteur --- UC1
+    Visiteur --- UC2
+    Visiteur --- UC3
+    Visiteur --- UC4
+    Visiteur --- UC5
+    Visiteur --- UC13
+    
+    Client --- UC6
+    Client --- UC7
+    Client --- UC8
+    Client --- UC9
+    Client --- UC10
+    Client --- UC11
+    Client --- UC12
+    Client --- UC14
+    Client --- UC15
+    Client --- UC16
+
+    style Acteurs fill:none,stroke:none
+    style Visiteur fill:none,stroke:none,color:#000
+    style Client fill:none,stroke:none,color:#000

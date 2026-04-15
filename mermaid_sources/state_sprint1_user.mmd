@@ -1,0 +1,27 @@
+flowchart TD
+    Start(( ))
+    End((( )))
+
+    Inactif(["Compte crée"])
+    Actif(["Utilisateur actif"])
+    Connecte(["Session ouverte"])
+    ResetEnCours(["Attente réinitialisation"])
+    Desactive(["Compte bloqué"])
+
+    Start --> Inactif
+    Inactif -->|Activation du compte| Actif
+    Actif -->|Connexion réussie| Connecte
+    Connecte -->|Déconnexion| Actif
+    Connecte -->|Demande reset mot de passe| ResetEnCours
+    ResetEnCours -->|Mot de passe réinitialisé| Connecte
+    Actif -->|Désactivation par Admin| Desactive
+    Desactive -->|Réactivation par Admin| Actif
+    Connecte -->|Suppression du compte| End
+
+    style Start fill:#000,stroke:#000,color:#000,width:20px,height:20px
+    style End fill:#fff,stroke:#000,stroke-width:4px,width:20px,height:20px
+    style Inactif fill:#f0f0f0,stroke:#333,color:#000
+    style Actif fill:#f0f0f0,stroke:#333,color:#000
+    style Connecte fill:#f0f0f0,stroke:#333,color:#000
+    style ResetEnCours fill:#f0f0f0,stroke:#333,color:#000
+    style Desactive fill:#f0f0f0,stroke:#333,color:#000

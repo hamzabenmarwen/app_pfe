@@ -1,0 +1,222 @@
+\documentclass[a4paper,12pt,oneside,final]{report}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext}      % Police Times New Roman (standard PFE)
+\usepackage{newtxmath}       % Formules en Times
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2cm, right=2cm, bindingoffset=0.5cm}
+\usepackage{microtype}       % Micro-typographie (justification propre)
+
+\usepackage{graphicx}
+\setkeys{Gin}{draft=false}
+\usepackage{rotating}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pifont}
+\usepackage{tocloft}
+\usepackage{etoolbox}
+\usepackage{appendix}
+\usepackage[bottom]{footmisc}
+
+% ============================================================
+% CONFIGURATION
+% ============================================================
+\onehalfspacing
+\raggedbottom
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+% ---- Empêcher la coupure des mots en fin de ligne ----
+\tolerance=9999
+\emergencystretch=3em
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% Fix headheight warning from fancyhdr
+\setlength{\headheight}{15.36pt}
+\addtolength{\topmargin}{-3.36pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=blue,
+    pdfauthor={Ben Marouen Hamza},
+  pdftitle={Conception et Développement d'une Solution Digitale Intelligente pour la Gestion des Activités de Traiteur},
+}
+
+% En-tête et pied de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Style des chapitres
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}
+  {\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+% Sommaire: afficher "Chapitre n" au lieu de "n"
+\renewcommand{\cftchappresnum}{Chapitre\ }
+\renewcommand{\cftchapaftersnum}{\quad}
+\settowidth{\cftchapnumwidth}{Chapitre 10\quad}
+
+% ============================================================
+% DEFINE JavaScript LANGUAGE FOR LISTINGS
+% (listings package does not include JavaScript by default)
+% ============================================================
+\lstdefinelanguage{JavaScript}{
+  keywords={break, case, catch, continue, debugger, default, delete, do, else,
+    finally, for, function, if, in, instanceof, new, return, switch, this,
+    throw, try, typeof, var, void, while, with, let, const, class, export,
+    import, extends, super, implements, interface, package, private,
+    protected, public, static, yield, async, await, enum, model, datasource,
+    generator},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]`,
+}
+
+% Configuration des listings pour le code
+\lstdefinestyle{codestyle}{
+    backgroundcolor=\color{gray!5},
+    commentstyle=\color{green!50!black},
+    keywordstyle=\color{blue!70!black}\bfseries,
+    stringstyle=\color{red!60!black},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    numberstyle=\tiny\color{gray},
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{gray!30},
+    literate=
+      {@}{{\textcolor{blue!70!black}{@}}}1
+      {é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {ë}{{\"e}}1
+      {à}{{\`a}}1 {â}{{\^a}}1
+      {ù}{{\`u}}1 {û}{{\^u}}1 {ü}{{\"u}}1
+      {ô}{{\^o}}1
+      {î}{{\^i}}1 {ï}{{\"i}}1
+      {ç}{{\c{c}}}1
+      {É}{{\'E}}1 {È}{{\`E}}1 {Ê}{{\^E}}1
+      {À}{{\`A}}1
+      {Ç}{{\c{C}}}1,
+}
+\lstset{style=codestyle}
+
+% Chemin des images — cherche dans diagrams/ et dans le dossier racine
+\graphicspath{{./diagrams/}{./}}
+
+% Placeholder propre pour les images manquantes (en attendant l'ajout final)
+\let\Originalincludegraphics\includegraphics
+\newcommand{\missinggraphic}[1]{%
+  \fbox{%
+    \parbox[c][0.22\textheight][c]{0.86\linewidth}{%
+      \centering
+      \textbf{Illustration à insérer}\\[2mm]
+      \small Fichier attendu : \texttt{\detokenize{#1}}%
+    }%
+  }%
+}
+\newcommand{\smartincludegraphics}[2][]{%
+  % Keep placeholders only for truly missing files while still checking ./diagrams.
+  \IfFileExists{#2}{%
+    \Originalincludegraphics[#1]{#2}%
+  }{%
+    \IfFileExists{diagrams/#2}{%
+      \Originalincludegraphics[#1]{diagrams/#2}%
+    }{%
+      \missinggraphic{#2}%
+    }%
+  }%
+}
+\renewcommand{\includegraphics}[2][]{%
+  \smartincludegraphics[#1]{#2}%
+}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+\begin{document}
+
+% --- Pages préliminaires (numérotation romaine) ---
+\pagenumbering{roman}
+\pagestyle{plain}
+
+% Dédicace, remerciements et déclaration
+\input{pages/dedicace}
+\input{pages/remerciements}
+\input{pages/declaration_originalite}
+\input{pages/resume}
+\input{pages/abstract}
+
+\pagestyle{fancy}
+
+% Tables
+\tableofcontents
+\clearpage
+
+\listoffigures
+\clearpage
+
+\listoftables
+\clearpage
+
+\input{pages/glossaire}
+
+% --- Corps du rapport (numérotation arabe) ---
+\pagenumbering{arabic}
+
+\input{chapters/introduction_generale}
+\input{chapters/chapitre1_etude_prealable}
+\input{chapters/chapitre2_sprint1_auth}
+\input{chapters/chapitre3_sprint2_catalogue}
+\input{chapters/chapitre4_sprint3_commandes}
+\input{chapters/chapitre5_sprint4_evenements}
+\input{chapters/chapitre6_sprint5_ia}
+\input{chapters/conclusion_generale}
+
+% --- Bibliographie ---
+\input{pages/bibliographie}
+
+\end{document}

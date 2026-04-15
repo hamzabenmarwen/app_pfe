@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor Admin
+    participant AI as AI Service (FastAPI)
+    participant PG as PostgreSQL (Catalog)
+    participant HF as HuggingFace Embeddings
+    participant Chroma as ChromaDB
+
+    Admin->>AI: POST /api/chat/refresh-knowledge
+
+    AI->>PG: SELECT * FROM plats
+    PG-->>AI: Liste des plats (nom, prix, description, catégorie)
+    AI->>PG: SELECT * FROM categories
+    PG-->>AI: Liste des catégories
+
+    loop Pour chaque plat
+        AI->>AI: Crée document texte enrichi
+        Note right of AI: "Plat: {nom}<br/>Prix: {prix} DT<br/>Catégorie: {catégorie}<br/>Description: {description}"
+        AI->>HF: Embedding du document
+        HF-->>AI: Vecteur 384 dimensions
+    end
+
+    AI->>Chroma: Supprime anciens documents
+    AI->>Chroma: Upsert nouveaux documents + embeddings + métadonnées
+    Chroma-->>AI: Documents indexés
+
+    AI-->>Admin: {success: true, documentsIndexed: N}

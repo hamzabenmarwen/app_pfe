@@ -1,0 +1,29 @@
+flowchart TD
+    Start(( ))
+    End((( )))
+
+    RECU(["Message reçu"])
+    INTENT(["Intention identifiée"])
+    RETRIEVE(["Contexte récupéré"])
+    PROMPT(["Prompt construit"])
+    GENERATE(["Réponse générée"])
+    DISPLAY(["Réponse affichée"])
+
+    Start --> RECU
+    RECU -->|Analyse du message| INTENT
+    INTENT -->|Encodage + recherche| RETRIEVE
+    RETRIEVE -->|Construction du prompt| PROMPT
+    PROMPT -->|Appel Gemini| GENERATE
+    GENERATE -->|Réponse validée| DISPLAY
+    DISPLAY --> End
+    RETRIEVE -->|Aucun document pertinent| DISPLAY
+    INTENT -->|Question hors périmètre| DISPLAY
+
+    style Start fill:#000,stroke:#000,width:20px,height:20px
+    style End fill:#fff,stroke:#000,stroke-width:4px,width:20px,height:20px
+    style RECU fill:#f0f0f0,stroke:#333,color:#000
+    style INTENT fill:#f0f0f0,stroke:#333,color:#000
+    style RETRIEVE fill:#f0f0f0,stroke:#333,color:#000
+    style PROMPT fill:#f0f0f0,stroke:#333,color:#000
+    style GENERATE fill:#f0f0f0,stroke:#333,color:#000
+    style DISPLAY fill:#f0f0f0,stroke:#333,color:#000

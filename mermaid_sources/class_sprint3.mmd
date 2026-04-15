@@ -1,0 +1,81 @@
+classDiagram
+    class Order {
+        - id: String
+        - userId: String
+        - orderNumber: String
+        - status: OrderStatus
+        - subtotal: Decimal
+        - deliveryFee: Decimal
+        - tax: Decimal
+        - totalAmount: Decimal
+        - deliveryAddress: Json
+        - deliveryDate: DateTime
+        - deliverySlot: String
+        - notes: String
+        - createdAt: DateTime
+    }
+
+    class OrderItem {
+        - id: String
+        - orderId: String
+        - platId: String
+        - platName: String
+        - quantity: Int
+        - unitPrice: Decimal
+        - notes: String
+    }
+
+    class Invoice {
+        - id: String
+        - orderId: String
+        - invoiceNumber: String
+        - amount: Decimal
+        - taxAmount: Decimal
+        - pdfUrl: String
+        - sentAt: DateTime
+        - createdAt: DateTime
+    }
+
+    class Payment {
+        - id: String
+        - invoiceId: String
+        - amount: Decimal
+        - method: PaymentMethod
+        - status: PaymentStatus
+        - transactionRef: String
+        - paidAt: DateTime
+        - createdAt: DateTime
+    }
+
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        CONFIRMED
+        PREPARING
+        READY
+        DELIVERING
+        DELIVERED
+        CANCELLED
+    }
+
+    class PaymentMethod {
+        <<enumeration>>
+        CASH
+        CARD
+        FLOUCI
+    }
+
+    class PaymentStatus {
+        <<enumeration>>
+        PENDING
+        COMPLETED
+        FAILED
+        REFUNDED
+    }
+
+    Order "1" --> "*" OrderItem : Contenir
+    Order "1" --> "0..1" Invoice : Generer
+    Invoice "1" --> "0..1" Payment : Associer
+    Order --> OrderStatus
+    Payment --> PaymentMethod
+    Payment --> PaymentStatus

@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventType {
+  WEDDING          // Mariage
+  CORPORATE        // Événement d'entreprise
+  BIRTHDAY         // Anniversaire
+  GRADUATION       // Remise de diplôme
+  BABY_SHOWER      // Baby shower
+  FUNERAL          // Funérailles
+  RELIGIOUS        // Événement religieux
+  COCKTAIL         // Cocktail
+  CONFERENCE       // Conférence
+  PRIVATE          // Fête privée
+  OTHER            // Autre
+}
+
+enum EventStatus {
+  DRAFT            // Brouillon
+  PENDING_QUOTE    // En attente de devis
+  QUOTE_SENT       // Devis envoyé
+  QUOTE_ACCEPTED   // Devis accepté
+  CONFIRMED        // Confirmé
+  IN_PROGRESS      // En cours
+  COMPLETED        // Terminé
+  CANCELLED        // Annulé
+}
+
+enum QuoteStatus {
+  DRAFT            // Brouillon
+  SENT             // Envoyé
+  VIEWED           // Vu par le client
+  ACCEPTED         // Accepté
+  REJECTED         // Refusé
+  EXPIRED          // Expiré
+}
+
+enum EventInvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Event {
+  id              String       @id @default(uuid())
+  userId          String       // Reference to user in auth-service
+  
+  // Event details
+  name            String
+  eventType       EventType
+  status          EventStatus  @default(DRAFT)
+  
+  // Date and location
+  eventDate       DateTime
+  startTime       String?      // "14:00"
+  endTime         String?      // "22:00"
+  venue           Json?        // { name, address, city, zipCode, country }
+  
+  // Guest info
+  guestCount      Int
+  guestCountMin   Int?         // For range estimates
+  guestCountMax   Int?
+  
+  // Requirements
+  dietaryRequirements Json?    // { vegetarian: 10, vegan: 5, halal: 3, glutenFree: 2 }
+  allergens          Json?     // List of allergens to avoid
+  serviceType        String?   // "Buffet", "Service à table", "Cocktail"
+  
+  // Additional info
+  description     String?      @db.Text
+  specialRequests String?      @db.Text
+  budget          Decimal?     @db.Decimal(10, 2)
+  budgetFlexible  Boolean      @default(false)
+  
+  // Contact
+  contactName     String?
+  contactPhone    String?
+  contactEmail    String?
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  quotes          Quote[]
+  menuItems       EventMenuItem[]
+  invoices        EventInvoice[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([eventDate])
+}
+
+model Quote {
+  id              String       @id @default(uuid())
+  eventId         String
+  event           Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  quoteNumber     String       @unique
+  status          QuoteStatus  @default(DRAFT)
+  
+  // Pricing
+  subtotal        Decimal      @db.Decimal(10, 2)
+  serviceFee      Decimal      @db.Decimal(10, 2) @default(0)
+  deliveryFee     Decimal      @db.Decimal(10, 2) @default(0)
+  tax             Decimal      @db.Decimal(10, 2)
+  discount        Decimal      @db.Decimal(10, 2) @default(0)
+  totalAmount     Decimal      @db.Decimal(10, 2)
+  
+  // Validity
+  validUntil      DateTime
+  
+  // Notes
+  notes           String?      @db.Text
+  termsConditions String?      @db.Text
+  
+  // Response tracking
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  respondedAt     DateTime?
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  items           QuoteItem[]
+  invoice         EventInvoice?
+
+  @@index([eventId])
+  @@index([status])
+}
+
+model EventInvoice {
+  id            String             @id @default(uuid())
+  eventId       String
+  quoteId       String             @unique
+  userId        String
+  invoiceNumber String             @unique
+  status        EventInvoiceStatus @default(SENT)
+
+  subtotal      Decimal            @db.Decimal(10, 2)
+  serviceFee    Decimal            @db.Decimal(10, 2) @default(0)
+  deliveryFee   Decimal            @db.Decimal(10, 2) @default(0)
+  tax           Decimal            @db.Decimal(10, 2)
+  discount      Decimal            @db.Decimal(10, 2) @default(0)
+  totalAmount   Decimal            @db.Decimal(10, 2)
+
+  issuedAt      DateTime           @default(now())
+  dueDate       DateTime
+  paidAt        DateTime?
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  quote         Quote              @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+}
+
+model QuoteItem {
+  id          String   @id @default(uuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  // Item details (can reference catalog or custom)
+  platId      String?  // Reference to plat in catalog-service
+  name        String
+  description String?
+  category    String?  // "Entrée", "Plat principal", "Dessert"
+  
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  
+  notes       String?
+
+  @@index([quoteId])
+}
+
+model EventMenuItem {
+  id          String   @id @default(uuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  platId      String   // Reference to plat in catalog-service
+  platName    String
+  category    String?
+  quantity    Int?
+  notes       String?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
+}
+
+model EventTemplate {
+  id              String      @id @default(uuid())
+  name            String
+  eventType       EventType
+  description     String?     @db.Text
+  
+  // Default settings
+  defaultGuestCount  Int?
+  defaultServiceType String?
+  suggestedBudgetMin Decimal?  @db.Decimal(10, 2)
+  suggestedBudgetMax Decimal?  @db.Decimal(10, 2)
+  
+  // Suggested items (platIds from catalog)
+  suggestedItems  Json?       // [{ platId, quantity, category }]
+  
+  isActive        Boolean     @default(true)
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}

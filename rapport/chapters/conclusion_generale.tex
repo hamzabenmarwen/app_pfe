@@ -1,0 +1,47 @@
+% ============================================================
+% CONCLUSION GÉNÉRALE
+% ============================================================
+\chapter*{\centering Conclusion générale}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+\markboth{Conclusion générale}{Conclusion générale}
+
+Ce projet de fin d'études a permis de concevoir et de mettre en œuvre une plateforme web destinée à la digitalisation des activités de \textbf{Assiette Gala Sfaxienne}. Les objectifs fixés en introduction ont été globalement atteints: sécurisation des accès, gestion du catalogue, traitement des commandes, prise en charge des événements et intégration d'une assistance intelligente.
+
+\section*{Bilan technique}
+
+Sur le plan architectural, l'approche microservices, orchestrée par une API Gateway, a offert un cadre de développement structuré et modulaire. Cette organisation a facilité la séparation des responsabilités et l'évolution progressive des fonctionnalités.
+
+Les technologies retenues ont répondu aux besoins du projet :
+\begin{itemize}
+    \item \textbf{Node.js/TypeScript} pour les services métier et la passerelle API.
+    \item \textbf{React/Vite} pour une interface utilisateur réactive et maintenable.
+    \item \textbf{Python/FastAPI} pour le module d'intelligence artificielle (chatbot et recommandations).
+    \item \textbf{PostgreSQL/Prisma} pour la persistance et la structuration des données.
+\end{itemize}
+
+\section*{Résultats obtenus}
+
+Le déroulement en sprints a permis de livrer des résultats concrets et progressifs :
+\begin{enumerate}
+    \item Implémentation de l'authentification et de l'autorisation par rôles.
+    \item Mise en place d'un catalogue de plats administrable.
+    \item Gestion du cycle de commande, de paiement et de facturation.
+    \item Gestion des demandes d'événements et du workflow de devis.
+    \item Intégration d'un chatbot RAG et d'un module de recommandations.
+\end{enumerate}
+
+\section*{Limites et perspectives}
+
+Malgré les résultats obtenus, certaines limites subsistent et ouvrent des axes d'amélioration :
+
+\begin{itemize}
+    \item Renforcement de l'observabilité (métriques, traces, journalisation centralisée).
+    \item Augmentation de la couverture de tests automatisés (unitaires, intégration, e2e).
+    \item Amélioration de la résilience inter-services (retries, circuit breaker).
+    \item Déploiement cloud industrialisé (CI/CD, conteneurisation, orchestration).
+    \item Extension fonctionnelle via application mobile et analytique avancée.
+\end{itemize}
+
+\vspace{1cm}
+
+En synthèse, ce travail a permis de proposer une solution cohérente, évolutive et orientée métier, répondant aux besoins actuels de l'entreprise. Il constitue une base solide pour des évolutions futures, tant sur le plan fonctionnel que sur le plan technique.

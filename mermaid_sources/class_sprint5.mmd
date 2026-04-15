@@ -1,0 +1,49 @@
+classDiagram
+    class ChatbotService {
+        - vectorStore: ChromaDB
+        - embedder: HuggingFaceEmbeddings
+        - llm: GoogleGemini
+    }
+
+    class RecommenderService {
+        - dbService: DatabaseService
+    }
+
+    class DatabaseService {
+        - connection: PostgreSQL
+    }
+
+    class ChromaDB {
+        - collection: Collection
+    }
+
+    class GoogleGemini {
+        - apiKey: String
+        - model: String
+    }
+
+    class HuggingFaceEmbeddings {
+        - modelName: String
+        - dimensions: Int
+    }
+
+    class ConversationHistory {
+        - sessionId: String
+        - messages: Message[]
+    }
+
+    class IntentType {
+        <<enumeration>>
+        MENU
+        COMMANDE
+        EVENEMENT
+        GENERAL
+    }
+
+    ChatbotService --> ChromaDB : Rechercher
+    ChatbotService --> GoogleGemini : Generer
+    ChatbotService --> HuggingFaceEmbeddings : Encoder
+    ChatbotService --> ConversationHistory : Gerer
+    ChatbotService --> DatabaseService : Consulter
+    ChatbotService --> IntentType : Classifier
+    RecommenderService --> DatabaseService : Recuperer

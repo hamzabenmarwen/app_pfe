@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Env files (never commit real secrets)
+.env
+.env.*
+!.env.example
+
+# Build outputs
+**/dist/
+**/build/
+**/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Reports / performance artifacts
+tests/performance/summary.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*.code-workspace

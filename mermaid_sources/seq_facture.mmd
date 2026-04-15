@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Order as Order Service
+    participant Auth as Auth Service
+    participant PDF as PDFKit
+
+    Client->>Frontend: Clique "Télécharger PDF"
+    Frontend->>Gateway: GET /api/invoices/order/:orderId/pdf
+    Gateway->>Order: Proxy requête (JWT vérifié)
+    Order->>Order: Vérifie ownership (userId ou ADMIN)
+    Order->>Order: Récupère invoice + order + items + payment
+
+    Order->>Auth: GET /api/users/:userId
+    Auth-->>Order: {firstName, lastName, email, phone}
+
+    Order->>PDF: Génère document A4
+    Note right of PDF: En-tête Assiette Gala<br/>Infos client (nom, email, tel)<br/>Adresse de livraison<br/>Tableau des articles<br/>Sous-total, TVA 19%, livraison<br/>Total en DT<br/>Mode et statut paiement
+
+    PDF-->>Order: Buffer PDF
+
+    Order-->>Gateway: Content-Type: application/pdf
+    Gateway-->>Frontend: Fichier PDF
+    Frontend-->>Client: Téléchargement facture-INV-XXXXXX.pdf

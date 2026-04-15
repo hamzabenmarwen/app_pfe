@@ -1,0 +1,58 @@
+classDiagram
+    class Event {
+        - id: String
+        - userId: String
+        - type: String
+        - title: String
+        - date: DateTime
+        - guestCount: Int
+        - budget: Decimal
+        - status: EventStatus
+        - description: String
+        - address: String
+        - createdAt: DateTime
+        - updatedAt: DateTime
+    }
+
+    class Quote {
+        - id: String
+        - eventId: String
+        - totalPrice: Decimal
+        - status: QuoteStatus
+        - items: Json
+        - message: String
+        - validUntil: DateTime
+        - createdAt: DateTime
+    }
+
+    class EventTemplate {
+        - id: String
+        - name: String
+        - description: String
+        - menuSuggestions: Json
+        - defaultGuestCount: Int
+        - createdAt: DateTime
+    }
+
+    class EventStatus {
+        <<enumeration>>
+        PENDING
+        QUOTED
+        CONFIRMED
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+
+    class QuoteStatus {
+        <<enumeration>>
+        DRAFT
+        SENT
+        ACCEPTED
+        REJECTED
+        EXPIRED
+    }
+
+    Event "1" --> "*" Quote : Recevoir
+    Event --> EventStatus
+    Quote --> QuoteStatus

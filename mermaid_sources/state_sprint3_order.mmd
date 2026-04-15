@@ -1,0 +1,32 @@
+flowchart TD
+    Start(( ))
+    End((( )))
+
+    PENDING(["En attente de paiement"])
+    CONFIRMED(["Commande confirmée"])
+    PREPARING(["En cours de préparation"])
+    READY(["Prête pour livraison"])
+    DELIVERING(["En cours de livraison"])
+    DELIVERED(["Livrée au client"])
+    CANCELLED(["Commande annulée"])
+
+    Start --> PENDING
+    PENDING -->|Paiement vérifié| CONFIRMED
+    PENDING -->|Annulation client| CANCELLED
+    CONFIRMED -->|Début préparation| PREPARING
+    PREPARING -->|Préparation terminée| READY
+    READY -->|Départ livraison| DELIVERING
+    DELIVERING -->|Livraison confirmée| DELIVERED
+    DELIVERED --> End
+    CONFIRMED -->|Annulation admin| CANCELLED
+    CANCELLED --> End
+
+    style Start fill:#000,stroke:#000,width:20px,height:20px
+    style End fill:#fff,stroke:#000,stroke-width:4px,width:20px,height:20px
+    style PENDING fill:#f0f0f0,stroke:#333,color:#000
+    style CONFIRMED fill:#f0f0f0,stroke:#333,color:#000
+    style PREPARING fill:#f0f0f0,stroke:#333,color:#000
+    style READY fill:#f0f0f0,stroke:#333,color:#000
+    style DELIVERING fill:#f0f0f0,stroke:#333,color:#000
+    style DELIVERED fill:#f0f0f0,stroke:#333,color:#000
+    style CANCELLED fill:#f0f0f0,stroke:#333,color:#000

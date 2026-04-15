@@ -1,0 +1,14 @@
+{
+  "siteName": "Assiette Gourmand",
+  "siteLogo": "",
+  "siteDescription": "Plateforme Traiteur ",
+  "siteEmail": "assiestte.sfaxienne@gmail.com",
+  "sitePhone": "+216 24 230 587",
+  "siteAddress": "Route Mahdia KM 1, Sfax, Tunisie",
+  "deliveryFee": "5.00",
+  "minOrderAmount": 10,
+  "taxRate": "19",
+  "enableNotifications": true,
+  "enableEmailAlerts": true,
+  "maintenanceMode": false
+}

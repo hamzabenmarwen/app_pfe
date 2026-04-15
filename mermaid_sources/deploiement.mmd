@@ -1,0 +1,62 @@
+flowchart TB
+    subgraph client["Poste Client"]
+        Browser["Navigateur Web<br/>Chrome / Firefox"]
+    end
+
+    subgraph server["Serveur Application"]
+        subgraph frontend_node["Conteneur Frontend"]
+            Frontend["Frontend React<br/>Vite - Port 5174"]
+        end
+        subgraph gateway_node["Conteneur API Gateway"]
+            Gateway["API Gateway<br/>Express.js - Port 3000"]
+        end
+        subgraph auth_node["Conteneur Auth"]
+            Auth["Auth Service<br/>Express.js - Port 3001"]
+        end
+        subgraph catalog_node["Conteneur Catalogue"]
+            Catalog["Catalog Service<br/>Express.js - Port 3002"]
+        end
+        subgraph order_node["Conteneur Commandes"]
+            OrderSvc["Order Service<br/>Express.js - Port 3003"]
+        end
+        subgraph event_node["Conteneur Événements"]
+            EventSvc["Event Service<br/>Express.js - Port 3004"]
+        end
+        subgraph ai_node["Conteneur IA"]
+            AI["AI Service<br/>FastAPI - Port 8000"]
+        end
+    end
+
+    subgraph db_server["Serveur Base de données"]
+        DB1[("PostgreSQL<br/>Auth DB")]
+        DB2[("PostgreSQL<br/>Catalog DB")]
+        DB3[("PostgreSQL<br/>Order DB")]
+        DB4[("PostgreSQL<br/>Event DB")]
+        DB5[("ChromaDB<br/>Vector Store")]
+    end
+
+    subgraph external["Services Externes"]
+        Cloud["Cloudinary<br/>Stockage images"]
+        Gemini["Google Gemini API<br/>LLM"]
+        Flouci["Flouci API<br/>Paiement en ligne"]
+        SMTP["Serveur SMTP<br/>Emails"]
+    end
+
+    Browser -- "HTTPS" --> Frontend
+    Frontend -- "HTTP REST" --> Gateway
+    Gateway --> Auth
+    Gateway --> Catalog
+    Gateway --> OrderSvc
+    Gateway --> EventSvc
+    Gateway --> AI
+
+    Auth --> DB1
+    Catalog --> DB2
+    OrderSvc --> DB3
+    EventSvc --> DB4
+    AI --> DB5
+
+    Catalog --> Cloud
+    AI --> Gemini
+    OrderSvc --> Flouci
+    Auth --> SMTP

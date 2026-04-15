@@ -1,0 +1,35 @@
+classDiagram
+    class Plat {
+        - id: String
+        - nom: String
+        - description: String
+        - prix: Decimal
+        - categoryId: String
+        - imageUrl: String
+        - isAvailable: Boolean
+        - preparationTime: Int
+        - createdAt: DateTime
+        - updatedAt: DateTime
+    }
+
+    class Category {
+        - id: String
+        - nom: String
+        - description: String
+        - createdAt: DateTime
+    }
+
+    class Allergen {
+        - id: String
+        - nom: String
+        - createdAt: DateTime
+    }
+
+    class PlatAllergen {
+        - platId: String
+        - allergenId: String
+    }
+
+    Plat "*" --> "1" Category : Appartenir
+    Plat "1" --> "*" PlatAllergen : Avoir
+    Allergen "1" --> "*" PlatAllergen : Concerner

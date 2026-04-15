@@ -1,0 +1,706 @@
+% ============================================================
+% CHAPITRE 1 : ÉTUDE PRÉALABLE
+% ============================================================
+\chapter{Étude Préalable}
+
+\section{Introduction}
+
+Avant d'entamer la moindre ligne de code, il convient de dresser un panorama lucide du terrain sur lequel nous intervenons. Ce premier chapitre remplit cette fonction en trois temps. D'abord, nous délimitons le périmètre académique et industriel de la mission. Ensuite, nous passons au crible les outils déjà présents sur le marché tunisien et international, afin de pointer leurs carences vis-à-vis du métier de traiteur. Enfin, nous exposons la solution retenue ainsi que le cadre méthodologique qui guidera sa fabrication tout au long des cinq sprints à venir.
+
+% --------------------------------------------------
+\section{Cadre général du projet}
+
+\subsection{Cadre du projet}
+
+Le présent ouvrage concrétise l'aboutissement du cursus de \textbf{Mastère Professionnel en Développement des Systèmes Informatiques et Réseaux}, rattaché à l'\textbf{Institut Supérieur des Études Technologiques de Sfax} (ISET Sfax), promotion 2025/2026.
+
+L'immersion terrain a débuté le \textbf{26 janvier 2026} et s'est achevée le \textbf{20 mai 2026} dans les cuisines et bureaux d'\textbf{Assiette Gala Sfaxienne}. Deux tuteurs ont piloté l'avancement :
+\begin{itemize}
+    \item \textbf{M. Omar Daoud} --- responsable industriel, gérant du traiteur --- qui a dicté les priorités métier.
+    \item \textbf{M. Mohammed Elleuch} --- encadrant universitaire --- qui a veillé à la rigueur scientifique du livrable.
+\end{itemize}
+
+\subsection{Objectifs du projet}
+
+La finalité première est de doter l'entreprise d'un écosystème numérique complet, taillé sur mesure pour son activité de traiteur événementiel et quotidien. Les axes retenus sont les suivants :
+
+\begin{itemize}
+    \item \textbf{Vitrine culinaire connectée :} exposer en ligne la totalité du menu (allergènes, catégories, plats du jour) avec téléversement photographique.
+    \item \textbf{Tunnel de vente automatisé :} guider l'acheteur du panier jusqu'à la facture PDF, en passant par la confirmation de commande.
+    \item \textbf{Bureau événementiel dématérialisé :} permettre à un particulier de composer son buffet de mariage ou de séminaire et de recevoir un devis chiffré sans déplacer quiconque.
+    \item \textbf{Robot conversationnel métier :} libérer l'équipe des questions répétitives (``Livrez-vous le dimanche ?'') grâce à un chatbot nourri aux données réelles du traiteur.
+    \item \textbf{Moteur de suggestion :} pousser vers le client des plats en cohérence avec ses achats antérieurs, augmentant ainsi le panier moyen.
+    \item \textbf{Blindage des accès :} cloisonner les rôles (visiteur, client, administrateur) par un dispositif de jetons cryptographiques.
+\end{itemize}
+
+% --------------------------------------------------
+\section{Présentation de l'organisme d'accueil}
+
+\subsection{Présentation Générale}
+
+\textbf{Assiette Gala Sfaxienne} a vu le jour le \textbf{16 octobre 2020} sous l'impulsion de M. Omar Daoud. Implantée sur la Route de Mahdia (km 1), la maison s'est forgé une réputation dans la région de Sfax en misant sur deux piliers : la fidélité aux saveurs locales et l'adaptation aux rythmes de vie contemporains (commande à distance, retrait express).
+
+La direction nourrit l'ambition de transformer ce commerce artisanal en acteur culinaire régional de référence, en s'appuyant sur des leviers de \textbf{Business Intelligence} et de digitalisation avancée.
+
+\subsection{Services}
+
+Le modèle économique de l'établissement s'articule autour de trois branches complémentaires :
+
+\begin{itemize}
+    \item \textbf{Restauration quotidienne (B2C) :} du lundi au vendredi, ouverture à 11 h. La carte se divise entre une gamme permanente et un \og Menu du Jour \fg{} diffusé sur les réseaux sociaux chaque matin.
+    \item \textbf{Offre corporative (B2B) :} formules déjeuner pour les salariés d'entreprises voisines, sous forme d'abonnements hebdomadaires ou de plateaux-repas ponctuels.
+    \item \textbf{Traiteur événementiel :} activité exclusive du week-end (samedi et dimanche) dédiée aux réceptions d'envergure --- mariages, fiançailles, séminaires professionnels --- avec conception de menus sur mesure.
+\end{itemize}
+
+\subsection{Coordonnées}
+
+Le Tableau~\ref{tab:fiche_entreprise} récapitule les informations de contact de l'organisme.
+
+\begin{table}[H]
+    \centering
+    \caption{Fiche de contact de l'organisme d'accueil}
+    \label{tab:fiche_entreprise}
+    \begin{tabular}{|l|p{8cm}|}
+        \hline
+        \textbf{Désignation} & \textbf{Détail} \\
+        \hline
+        Raison sociale & Assiette Gala Sfaxienne \\
+        \hline
+        Gérant & M. Omar Daoud \\
+        \hline
+        Activité & Traiteur événementiel, plats quotidiens et livraison \\
+        \hline
+        Date de création & 16 Octobre 2020 \\
+        \hline
+        Adresse & Route Mahdia km 1, Sfax, Tunisie \\
+        \hline
+        Téléphone & 24 230 587 \\
+        \hline
+        Courriel & assiette.sfaxienne@gmail.com \\
+        \hline
+        Plages horaires & Lundi -- Vendredi dès 11 h (week-end réservé à l'événementiel) \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Organigramme}
+
+La structure hiérarchique d'Assiette Gala est volontairement aplatie : M. Daoud assure la direction générale et le pilotage commercial, tandis qu'une brigade de cuisine et un pôle logistique (livraison) opèrent sous sa supervision directe. Dans le cadre de ce PFE, le stagiaire (Ben Marouen Hamza) est rattaché à la direction en tant que prestataire technique, encadré académiquement par M. Elleuch.
+
+% --------------------------------------------------
+\section{Concepts clés du projet}
+
+Avant de plonger dans la programmation, il est nécessaire de présenter les piliers technologiques sur lesquels repose notre architecture. Chaque concept est ici rattaché à un besoin concret du traiteur, afin d'en justifier la pertinence.
+
+\subsection{Architecture Microservices}
+
+\subsubsection{Principe et motivations}
+
+Pour qu'un dysfonctionnement du chatbot n'empêche pas un client affamé de valider son panier, nous avons morcelé l'application en \textbf{modules indépendants} (un par domaine métier). Cette philosophie, baptisée \textbf{architecture microservices}~[2], offre trois garanties essentielles dans le contexte d'Assiette Gala :
+
+\begin{itemize}
+    \item \textbf{Cloisonnement des incidents :} la panne du moteur de recommandation n'affecte ni le catalogue ni la facturation.
+    \item \textbf{Montée en puissance ciblée :} pendant la haute saison des mariages (juin-septembre), seul le service ``Événements'' est renforcé, sans toucher au reste.
+    \item \textbf{Autonomie des données :} chaque capsule logicielle détient sa propre base PostgreSQL, supprimant les goulets d'étranglement.
+\end{itemize}
+
+\subsubsection{Passerelle d'entrée (API Gateway)}
+
+Pour éviter que le navigateur du client n'ait à connaître l'adresse de sept serveurs distincts, une \textbf{passerelle unique} (port 3000) joue le rôle de standard téléphonique : elle réceptionne chaque appel HTTP, vérifie le badge JWT du demandeur, puis achemine la requête vers la bonne cuisine logicielle~[3].
+
+\subsubsection{Comparaison avec l'approche monolithique}
+
+Le Tableau~\ref{tab:mono_vs_micro} met en regard les deux philosophies de construction.
+
+\begin{table}[H]
+    \centering
+    \caption{Monolithe \textit{vs} Microservices pour Assiette Gala}
+    \label{tab:mono_vs_micro}
+    \begin{tabular}{|p{4cm}|p{4.5cm}|p{4.5cm}|}
+        \hline
+        \textbf{Facteur} & \textbf{Monolithe} & \textbf{Microservices (notre choix)} \\
+        \hline
+        Déploiement & Arrêt complet à chaque mise à jour & Actualisation d'un seul module \\
+        \hline
+        Pics de charge & Duplication de toute l'infrastructure & Renforcement ciblé \\
+        \hline
+        Tolérance aux erreurs & Une faille peut paralyser le traiteur & Isolation logicielle \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Intelligence Artificielle}
+
+\subsubsection{Traitement du Langage Naturel (NLP)}
+
+Sur les réseaux sociaux d'Assiette Gala, les messages du style \og Est-ce que vous faites des plats sans gluten ? \fg{} affluent quotidiennement. Plutôt que de mobiliser un employé pour y répondre, nous déployons un module de \textbf{Traitement du Langage Naturel} qui s'appuie sur l'architecture Transformer~[6]. Ce dernier déchiffre l'intention cachée derrière la phrase du client, puis compose une réponse polie et factuelle.
+
+\subsubsection{Génération augmentée par récupération (RAG)}
+
+Un modèle d'IA généraliste ignore tout du couscous sfaxien du jour à 18 TND. Pour combler ce trou, nous appliquons la stratégie \textbf{RAG} (\textit{Retrieval-Augmented Generation})~[5] : avant de formuler sa réponse, le chatbot fouille la base de données actuelle du traiteur, isole les plats correspondants, puis glisse ces fiches produit à l'IA. Résultat : la réponse est non seulement grammaticalement correcte, mais surtout exacte sur les prix, les ingrédients et les disponibilités du moment.
+
+\subsubsection{Plongements vectoriels}
+
+Pour que la phase de récupération du RAG soit fulgurante, chaque description de plat est convertie en coordonnées numériques de 384 dimensions grâce au modèle \textit{all-MiniLM-L6-v2}. Deux recettes proches (``couscous sfaxien'' et ``couscous au poisson'') produisent des vecteurs voisins. La proximité est mesurée par la \textbf{similarité cosinus} :
+
+\begin{equation}
+    \text{sim}(\vec{q}, \vec{d}) = \frac{\vec{q} \cdot \vec{d}}{||\vec{q}|| \times ||\vec{d}||}
+\end{equation}
+
+Ce calcul permet au bot de retrouver le bon plat même si le client emploie des synonymes ou des tournures inhabituelles.
+
+\subsection{Sécurité applicative}
+
+\subsubsection{Jetons de session (JWT)}
+
+Pour qu'un habitué qui reprend son téléphone vingt minutes plus tard n'ait pas à ressaisir ses identifiants, le serveur lui décerne un \textbf{JSON Web Token (JWT)} --- une carte de fidélité numérique signée cryptographiquement. Notre dispositif fonctionne en tandem : un jeton éphémère (15 minutes) pour les requêtes courantes, et un jeton de renouvellement (7 jours) qui régénère silencieusement le premier.
+
+\subsubsection{Hachage des mots de passe (bcrypt)}
+
+La base de données clients est un actif sensible. En cas d'intrusion, il est impératif que les mots de passe restent indéchiffrables. Le mécanisme \textbf{bcrypt} broie chaque mot de passe en y injectant un grain de sel aléatoire et un coût de calcul élevé, rendant toute tentative de reconstitution économiquement absurde pour un attaquant.
+
+% --------------------------------------------------
+\section{Analyse et critique de l'existant}
+
+\subsection{État du marché}
+
+Avant de coder quoi que ce soit, nous avons scruté le paysage numérique disponible pour la restauration. L'offre se scinde en deux familles :
+\begin{itemize}
+    \item Les \textbf{plateformes de livraison immédiates} (Jumia Food, Glovo, Kool), conçues pour le grand public tunisien.
+    \item Les \textbf{progiciels de gestion traiteur} (CaterZen, HoneyCart), destinés aux entreprises nord-américaines.
+\end{itemize}
+
+\subsection{Analyse comparative}
+
+\subsubsection{Plateformes tunisiennes (Jumia Food, Glovo, Kool)}
+
+\textbf{Atouts :} ces acteurs maîtrisent la logistique locale (flotte de livreurs, couverture GPS, interfaces mobiles fluides). Kool a le mérite supplémentaire d'être culturellement aligné sur les usages tunisiens (langue, adressage).
+
+\textbf{Insuffisances :} leur ADN est celui du \textit{fast food}. Impossible d'y gérer une demande de devis pour un mariage, d'adapter un menu hebdomadaire ou de brancher un assistant conversationnel intelligent. De surcroît, les commissions prélevées sur chaque vente amputent sévèrement la marge du traiteur.
+
+\subsubsection{Logiciels américains (CaterZen, HoneyCart)}
+
+\textbf{Atouts :} ces outils épousent le métier de traiteur (planning de production, signature électronique de devis, facturation récurrente).
+
+\textbf{Insuffisances :} leur tarification en dollars, l'absence de passerelle de paiement locale (Flouci, D17) et l'interface exclusivement anglophone les rendent inopérants en Tunisie. Aucun des deux ne propose de chatbot IA.
+
+\subsection{Critique de l'existant}
+
+Le Tableau~\ref{tab:comparatif_existant} condense notre évaluation.
+
+\begin{table}[H]
+    \centering
+    \caption{Matrice d'évaluation des outils du marché}
+    \label{tab:comparatif_existant}
+    \renewcommand{\arraystretch}{1.3}
+    \scriptsize
+    \begin{tabular}{|p{3cm}|c|c|c|c|c|c|}
+        \hline
+        \textbf{Critère} & \textbf{Jumia} & \textbf{Glovo} & \textbf{Kool} & \textbf{CaterZen} & \textbf{HoneyCart} & \textbf{Notre solution} \\
+        \hline
+        Vitrine du menu & \ding{51} & \ding{51} & \ding{51} & \ding{51} & \ding{51} & \ding{51} \\
+        \hline
+        Paiement en ligne & \ding{51} & \ding{51} & \ding{51} & \ding{51} & \ding{51} & \ding{51} \\
+        \hline
+        Gestion événementielle & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
+        \hline
+        Génération de devis & \ding{55} & \ding{55} & \ding{55} & \ding{51} & \ding{51} & \ding{51} \\
+        \hline
+        Chatbot IA & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
+        \hline
+        Recommandation IA & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{55} & \ding{51} \\
+        \hline
+        Adapté au marché tunisien & \ding{51} & \ding{51} & \ding{51} & \ding{55} & \ding{55} & \ding{51} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\textbf{Verdict :} aucun acteur mondial ou local ne réunit les cinq exigences cardinales du traiteur sfaxien --- vitrine culinaire, devis événementiel, intelligence conversationnelle, recommandation personnalisée et compatibilité locale. C'est ce vide que notre projet ambitionne de combler.
+
+% --------------------------------------------------
+\section{Solution proposée}
+
+Face aux lacunes inventoriées, nous avons conçu un portail web entièrement dédié à \textbf{Assiette Gala Sfaxienne}. La philosophie directrice est de restituer au traiteur une souveraineté numérique totale, sans dépendance envers une marketplace tierce. Les briques fondatrices sont :
+
+\begin{itemize}
+    \item \textbf{Ossature distribuée :} sept API indépendantes (Identité, Catalogue, Ventes, Événements, IA, Gateway, Frontend) pour prévenir l'obsolescence technologique.
+    \item \textbf{Collaborateur virtuel :} un chatbot propulsé par Gemini 2.5 Flash, alimenté en temps réel par la base de données du traiteur.
+    \item \textbf{Circuit de recommandation :} analyse du comportement d'achat pour mettre en avant les plats à fort potentiel de conversion.
+    \item \textbf{Bureau événementiel :} édition de devis PDF directement depuis le navigateur, avec sélection du menu et chiffrage automatique.
+    \item \textbf{Tableau de bord décisionnel :} indicateurs visuels (chiffre d'affaires, commandes par jour, plats populaires) pour orienter la stratégie du gérant.
+\end{itemize}
+
+Ce regroupement est schématisé dans la Figure~\ref{fig:solution_overview}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{solution_overview.png}
+    \caption{Briques fonctionnelles de la solution Assiette Gala}
+    \label{fig:solution_overview}
+\end{figure}
+
+% --------------------------------------------------
+\section{Langage et Méthodologie de Conception}
+
+\subsection{Choix de la méthodologie de conception}
+
+Les approches classiques de l'ingénierie (cycle en V, cascade) exigent de figer l'intégralité du cahier des charges avant d'écrire la moindre ligne de code. Or, dans le quotidien d'Assiette Gala, les priorités bougent au gré des retours de M. Daoud : un jour il réclame le chatbot, le lendemain il veut d'abord finaliser la facturation. Appliquer un modèle rigide aurait naufragé le calendrier.
+
+\subsection{Principales méthodes agiles et choix de Scrum}
+
+Parmi les cadres agiles disponibles (Kanban, XP, Scrum), nous avons retenu \textbf{Scrum} pour trois raisons pratiques :
+\begin{enumerate}
+    \item \textbf{Cycles courts :} chaque sprint de trois semaines livre un morceau d'application testable sur navigateur.
+    \item \textbf{Boucle de rétroaction :} la démonstration de fin de sprint à M. Daoud permet de corriger le tir immédiatement.
+    \item \textbf{Priorisation dynamique :} le \textit{Product Backlog} peut être réordonné à tout moment sans tout restructurer.
+\end{enumerate}
+
+% --------------------------------------------------
+\section{Les fondements de la méthodologie Scrum}
+
+Le dispositif Scrum s'articule autour de trois piliers fondamentaux énoncés par Schwaber et Sutherland~[19] :
+
+\begin{itemize}
+    \item \textbf{Transparence :} tout le monde voit l'état d'avancement (backlog visible, code versionné sur Git).
+    \item \textbf{Inspection :} à chaque fin de sprint, le livrable est examiné à la loupe par le Product Owner.
+    \item \textbf{Adaptation :} si un module ne convient pas, la direction du sprint suivant est infléchie sans remords.
+\end{itemize}
+
+Les artefacts clés sont le \textbf{Product Backlog} (liste exhaustive des fonctionnalités souhaitées), le \textbf{Sprint Backlog} (sous-ensemble traité pendant un cycle) et l'\textbf{Incrément} (bout de logiciel fonctionnel livré à chaque fin de sprint).
+
+% --------------------------------------------------
+\section{Événements Scrum : catalyseurs de collaboration}
+
+Chaque sprint est rythmé par quatre rendez-vous obligatoires :
+
+\begin{itemize}
+    \item \textbf{Sprint Planning :} sélection des \textit{user stories} à traiter pendant les trois prochaines semaines.
+    \item \textbf{Daily Stand-up :} point éclair quotidien pour signaler les blocages éventuels.
+    \item \textbf{Sprint Review :} démonstration live de l'incrément à M. Daoud sur un navigateur.
+    \item \textbf{Sprint Retrospective :} bilan interne pour identifier les améliorations de processus.
+\end{itemize}
+
+% --------------------------------------------------
+\section{Application au projet Assiette Gala}
+
+\textbf{Répartition des rôles :}
+\begin{itemize}
+    \item \textbf{Product Owner --- M. Omar Daoud :} il porte la vision métier, valide ou refuse les interfaces, et fixe les priorités du backlog.
+    \item \textbf{Scrum Master --- M. Mohammed Elleuch :} il débloque les obstacles techniques et veille au respect du cadre universitaire.
+    \item \textbf{Développeur --- Ben Marouen Hamza :} il programme l'intégralité de la solution (backend, frontend, IA).
+\end{itemize}
+
+Le projet a été découpé en \textbf{cinq sprints} de trois semaines chacun, avec une période de stabilisation finale d'une dizaine de jours.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{scrum_process.png}
+    \caption{Déroulement des cycles Scrum dans notre projet}
+    \label{fig:scrum_process}
+\end{figure}
+
+% --------------------------------------------------
+\section{Bénéfices attendus et perspectives}
+
+\subsection{La méthodologie Scrum}
+
+\subsubsection{Équipe Scrum}
+
+\begin{table}[H]
+    \centering
+    \caption{Composition de l'équipe Scrum}
+    \label{tab:equipe_scrum}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Rôle Scrum} & \textbf{Membre} \\
+        \hline
+        Product Owner & M. Omar Daoud \\
+        \hline
+        Scrum Master & M. Mohammed Elleuch \\
+        \hline
+        Développeur & Ben Marouen Hamza \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{Backlog produit}
+
+Le \textit{Product Backlog} rassemble l'ensemble des \textit{user stories} formulées selon le gabarit : \og En tant que [acteur], je souhaite [action] afin de [bénéfice] \fg{}. Le Tableau~\ref{tab:backlog} en donne la liste exhaustive.
+
+\begin{longtable}{|c|p{7cm}|c|c|}
+    \caption{Backlog produit d'Assiette Gala} \label{tab:backlog} \\
+    \hline
+    \textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Durée} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{ID} & \textbf{User Story} & \textbf{Priorité} & \textbf{Durée} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 1 --- Authentification et fondations}} \\
+    \hline
+    US-01 & En tant que visiteur, je souhaite créer un compte afin d'accéder aux fonctionnalités de la plateforme. & Haute & 3 jours \\
+    \hline
+    US-02 & En tant qu'utilisateur, je souhaite me connecter avec mes identifiants afin d'accéder à mon espace personnel. & Haute & 2 jours \\
+    \hline
+    US-03 & En tant qu'utilisateur, je souhaite me connecter via Google afin de simplifier le processus d'authentification. & Moyenne & 3 jours \\
+    \hline
+    US-04 & En tant qu'utilisateur, je souhaite réinitialiser mon mot de passe afin de récupérer l'accès à mon compte. & Haute & 2 jours \\
+    \hline
+    US-05 & En tant qu'utilisateur, je souhaite modifier mes informations personnelles afin de maintenir mon profil à jour. & Moyenne & 1 jour \\
+    \hline
+    US-06 & En tant qu'administrateur, je souhaite gérer les comptes utilisateurs afin de contrôler l'accès à la plateforme. & Haute & 3 jours \\
+    \hline
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 2 --- Catalogue des plats}} \\
+    \hline
+    US-07 & En tant que visiteur, je souhaite consulter le catalogue des plats afin de découvrir l'offre du traiteur. & Haute & 2 jours \\
+    \hline
+    US-08 & En tant que visiteur, je souhaite filtrer les plats par catégorie afin de trouver rapidement ce que je cherche. & Moyenne & 2 jours \\
+    \hline
+    US-09 & En tant que visiteur, je souhaite rechercher un plat par nom afin d'accéder directement au plat souhaité. & Moyenne & 1 jour \\
+    \hline
+    US-10 & En tant qu'administrateur, je souhaite ajouter un plat au catalogue afin d'enrichir l'offre proposée. & Haute & 3 jours \\
+    \hline
+    US-11 & En tant qu'administrateur, je souhaite modifier un plat existant afin de mettre à jour ses informations. & Haute & 2 jours \\
+    \hline
+    US-12 & En tant qu'administrateur, je souhaite gérer les catégories afin d'organiser le catalogue. & Haute & 2 jours \\
+    \hline
+    US-13 & En tant qu'administrateur, je souhaite gérer les allergènes afin d'informer les clients. & Moyenne & 1 jour \\
+    \hline
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 3 --- Commandes et paiement}} \\
+    \hline
+    US-14 & En tant que client, je souhaite ajouter des plats à mon panier afin de préparer ma commande. & Haute & 2 jours \\
+    \hline
+    US-15 & En tant que client, je souhaite passer une commande afin d'acheter les plats sélectionnés. & Haute & 5 jours \\
+    \hline
+    US-16 & En tant que client, je souhaite passer commande avec paiement en espèces afin de finaliser ma commande. & Haute & 3 jours \\
+    \hline
+    US-17 & En tant que client, je souhaite suivre l'état de ma commande afin de connaître son avancement. & Moyenne & 2 jours \\
+    \hline
+    US-18 & En tant que client, je souhaite télécharger la facture de ma commande afin de conserver un justificatif. & Moyenne & 3 jours \\
+    \hline
+    US-19 & En tant qu'administrateur, je souhaite consulter et gérer les commandes afin de les traiter efficacement. & Haute & 3 jours \\
+    \hline
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 4 --- Événements et devis}} \\
+    \hline
+    US-20 & En tant que client, je souhaite soumettre une demande d'événement afin de bénéficier des services traiteur. & Haute & 5 jours \\
+    \hline
+    US-21 & En tant que client, je souhaite sélectionner des plats pour mon événement afin de personnaliser le menu. & Haute & 3 jours \\
+    \hline
+    US-22 & En tant que client, je souhaite recevoir un devis pour mon événement afin d'évaluer le coût. & Haute & 3 jours \\
+    \hline
+    US-23 & En tant qu'administrateur, je souhaite gérer les demandes d'événements afin de planifier les prestations. & Haute & 3 jours \\
+    \hline
+    US-24 & En tant qu'administrateur, je souhaite gérer les modèles d'événements afin de proposer des formules prédéfinies. & Moyenne & 2 jours \\
+    \hline
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 5 --- Intelligence artificielle}} \\
+    \hline
+    US-25 & En tant que visiteur, je souhaite poser des questions au chatbot afin d'obtenir des informations sur les plats et services. & Haute & 8 jours \\
+    \hline
+    US-26 & En tant que client, je souhaite recevoir des recommandations personnalisées afin de découvrir des plats susceptibles de me plaire. & Moyenne & 5 jours \\
+    \hline
+    US-27 & En tant qu'administrateur, je souhaite actualiser la base de connaissances du chatbot afin qu'il dispose d'informations à jour. & Moyenne & 2 jours \\
+    \hline
+\end{longtable}
+
+\subsubsection{Planification des sprints}
+
+Le Tableau~\ref{tab:planification_sprints} détaille le calendrier de livraison.
+
+\begin{table}[H]
+    \centering
+    \caption{Calendrier des sprints}
+    \label{tab:planification_sprints}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{5.5cm}|c|c|}
+        \hline
+        \textbf{Sprint} & \textbf{Objectif} & \textbf{Durée} & \textbf{Période} \\
+        \hline
+        1 & Authentification et fondations & 3 semaines & 26/01 -- 15/02 \\
+        \hline
+        2 & Catalogue des plats & 3 semaines & 16/02 -- 08/03 \\
+        \hline
+        3 & Commandes et paiement & 3 semaines & 09/03 -- 29/03 \\
+        \hline
+        4 & Événements et devis & 3 semaines & 30/03 -- 19/04 \\
+        \hline
+        5 & Intelligence artificielle & 3 semaines & 20/04 -- 10/05 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+La période du \textbf{11/05 au 20/05} a été consacrée à la recette finale, aux correctifs de stabilisation et à la rédaction du présent rapport.
+
+\subsection{Choix de langage de conception}
+
+Pour formaliser les interactions entre modules et dessiner les plans de la base de données avant toute implémentation, nous avons adopté le langage \textbf{UML} (\textit{Unified Modeling Language}). Cette notation visuelle nous a permis de schématiser les dialogues entre acteurs et fonctionnalités (diagrammes de cas d'utilisation), de tracer le cheminement des données (diagrammes de séquence) et de modéliser les entités métier (diagrammes de classes).
+
+% --------------------------------------------------
+\section{Identification des acteurs}
+
+L'analyse du périmètre fonctionnel d'Assiette Gala a fait émerger trois profils d'utilisateurs distincts, résumés dans le Tableau~\ref{tab:acteurs}.
+
+\begin{table}[H]
+    \centering
+    \caption{Acteurs du système}
+    \label{tab:acteurs}
+    \renewcommand{\arraystretch}{1.4}
+    \begin{tabular}{|p{3cm}|p{9.5cm}|}
+        \hline
+        \textbf{Acteur} & \textbf{Périmètre d'action} \\
+        \hline
+        Visiteur & Individu non connecté : consultation du catalogue, lecture des informations publiques, dialogue avec le chatbot. \\
+        \hline
+        Client & Individu authentifié : passation de commandes, gestion de son profil, soumission de demandes d'événements, consultation de l'historique. \\
+        \hline
+        Administrateur & Pilote de la plateforme : gestion du catalogue, traitement des commandes, administration des comptes, pilotage des événements et configuration globale. \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Identification des besoins}
+
+\subsection{Besoins fonctionnels}
+
+Les comportements attendus du système, regroupés par domaine métier, figurent dans le Tableau~\ref{tab:besoins_fonctionnels}.
+
+\begin{longtable}{|p{3.5cm}|p{9cm}|}
+    \caption{Besoins fonctionnels du système} \label{tab:besoins_fonctionnels} \\
+    \hline
+    \textbf{Module} & \textbf{Besoins fonctionnels} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{Module} & \textbf{Besoins fonctionnels} \\
+    \hline
+    \endhead
+    \hline
+    \endfoot
+
+    Authentification &
+    \begin{itemize}
+        \item Inscription avec vérification par email
+        \item Connexion par identifiants (email/mot de passe)
+        \item Authentification via Google OAuth 2.0
+        \item Réinitialisation du mot de passe
+        \item Gestion des sessions par jetons JWT
+    \end{itemize} \\
+    \hline
+
+    Gestion du profil &
+    \begin{itemize}
+        \item Consultation et modification des informations personnelles
+        \item Gestion des adresses de livraison
+        \item Consultation de l'historique des commandes
+    \end{itemize} \\
+    \hline
+
+    Catalogue des plats &
+    \begin{itemize}
+        \item Consultation du catalogue avec filtrage par catégorie
+        \item Recherche de plats par mots-clés
+        \item Ajout, modification et suppression de plats (administrateur)
+        \item Gestion des catégories et des allergènes (administrateur)
+        \item Téléversement d'images de plats via Cloudinary
+    \end{itemize} \\
+    \hline
+
+    Commandes et paiement &
+    \begin{itemize}
+        \item Constitution d'un panier d'achat
+        \item Passation d'une commande avec choix du mode de livraison
+        \item Paiement en espèces
+        \item Suivi de l'état de la commande
+        \item Génération automatique de factures PDF
+    \end{itemize} \\
+    \hline
+
+    Gestion des événements &
+    \begin{itemize}
+        \item Soumission d'une demande d'événement (type, date, nombre de convives)
+        \item Sélection de plats pour l'événement
+        \item Demande et réception de devis
+        \item Suivi de l'état de la demande
+        \item Gestion des modèles d'événements (administrateur)
+    \end{itemize} \\
+    \hline
+
+    Intelligence artificielle &
+    \begin{itemize}
+        \item Chatbot conversationnel pour renseigner les clients
+        \item Recommandation personnalisée de plats
+        \item Actualisation dynamique de la base de connaissances
+    \end{itemize} \\
+    \hline
+
+    Administration &
+    \begin{itemize}
+        \item Tableau de bord avec indicateurs de performance
+        \item Gestion des utilisateurs (activation, désactivation)
+        \item Statistiques sur les ventes et les commandes
+    \end{itemize} \\
+    \hline
+\end{longtable}
+
+\subsection{Besoins non fonctionnels}
+
+Les exigences de qualité transversales sont récapitulées dans le Tableau~\ref{tab:besoins_non_fonctionnels}.
+
+\begin{table}[H]
+    \centering
+    \caption{Besoins non fonctionnels}
+    \label{tab:besoins_non_fonctionnels}
+    \renewcommand{\arraystretch}{1.4}
+    \begin{tabular}{|p{3.5cm}|p{9cm}|}
+        \hline
+        \textbf{Exigence} & \textbf{Description} \\
+        \hline
+        Performance & Temps de réponse des API inférieur à 500~ms. Chatbot répondant en moins de 5 secondes. \\
+        \hline
+        Sécurité & Mots de passe hachés (bcrypt), communications HTTPS, rotation des jetons JWT. \\
+        \hline
+        Ergonomie & Interface responsive (mobile, tablette, ordinateur) et accessible. \\
+        \hline
+        Maintenabilité & Séparation des préoccupations via les microservices. Respect des principes SOLID. \\
+        \hline
+        Scalabilité & Chaque service peut être redimensionné de façon indépendante. \\
+        \hline
+        Disponibilité & Tolérance à la panne d'un service sans interruption globale. \\
+        \hline
+        Compatibilité & Fonctionnement garanti sur Chrome, Firefox, Safari et Edge. \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Diagramme de cas d'utilisation global}
+
+Les deux figures ci-après offrent une cartographie synthétique des interactions entre les trois acteurs et les grandes fonctionnalités du système.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{uc_global_front.png}
+    \caption{Cas d'utilisation global --- Front Office}
+    \label{fig:uc_global_front}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{uc_global_back.png}
+    \caption{Cas d'utilisation global --- Back Office}
+    \label{fig:uc_global_back}
+\end{figure}
+
+% --------------------------------------------------
+\section{Diagramme de classes global}
+
+La Figure~\ref{fig:class_global} présente la structure statique de la solution, en mettant en lumière les entités métier, leurs attributs et les relations entre services.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{class_global.png}
+    \caption{Diagramme de classes global du système}
+    \label{fig:class_global}
+\end{figure}
+
+% --------------------------------------------------
+\section{Environnement de développement}
+
+\subsection{Environnement matériel}
+
+\begin{table}[H]
+    \centering
+    \caption{Poste de travail utilisé}
+    \label{tab:env_materiel}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Composant} & \textbf{Spécification} \\
+        \hline
+        Machine & PC portable \\
+        \hline
+        Processeur & Intel Core i5 (ou équivalent) \\
+        \hline
+        Mémoire vive & 16 Go RAM \\
+        \hline
+        Stockage & SSD 512 Go \\
+        \hline
+        Système d'exploitation & Windows \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Environnement logiciel}
+
+Le Tableau~\ref{tab:env_logiciel} recense les outils mobilisés.
+
+\begin{table}[H]
+    \centering
+    \caption{Outils et technologies du projet}
+    \label{tab:env_logiciel}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.5cm}|p{3cm}|p{6cm}|}
+        \hline
+        \textbf{Outil / Technologie} & \textbf{Version} & \textbf{Rôle dans le projet} \\
+        \hline
+        Visual Studio Code & Dernière & Environnement de rédaction du code \\
+        \hline
+        Node.js & 20+ & Moteur d'exécution des microservices \\
+        \hline
+        TypeScript & 5.x & Couche de typage pour fiabiliser les échanges \\
+        \hline
+        React & 19 & Construction des écrans (client et admin) \\
+        \hline
+        Vite & 7.x & Compilation ultra-rapide du Frontend \\
+        \hline
+        Tailwind CSS & 4.x & Habillage graphique via classes utilitaires \\
+        \hline
+        Express.js & 4.x & Routage HTTP interne des API \\
+        \hline
+        Prisma ORM & 5.x & Pont de communication avec PostgreSQL \\
+        \hline
+        PostgreSQL & 16 & Stockage des menus, utilisateurs et commandes \\
+        \hline
+        Python & 3.x & Scripts d'intelligence artificielle \\
+        \hline
+        FastAPI & Dernière & Interface rapide pour le chatbot \\
+        \hline
+        LangChain & 0.2.x & Orchestrateur des requêtes RAG \\
+        \hline
+        Google Gemini & 2.5 Flash & Modèle linguistique générant les réponses \\
+        \hline
+        Figma & En ligne & Maquettage graphique \\
+        \hline
+        Git & Dernière & Versionnement du code source \\
+        \hline
+        Postman & Dernière & Simulation et validation des requêtes API \\
+        \hline
+        Cloudinary & Cloud & Hébergement externe des photos de plats \\
+        \hline
+        ChromaDB & 0.5+ & Stockage vectoriel pour le pipeline RAG \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Architecture de déploiement}
+
+Le diagramme de déploiement (figure~\ref{fig:deploiement}) détaille la distribution physique des composants logiciels de la plateforme Assiette Gala, en illustrant les nœuds d'exécution (poste client, serveur d'application, serveur de bases de données) et les services externes mobilisés (Cloudinary, Google Gemini, Flouci, SMTP).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{deploiement.png}
+    \caption{Diagramme de déploiement de la plateforme Assiette Gala}
+    \label{fig:deploiement}
+\end{figure}
+
+% --------------------------------------------------
+\section{Conclusion}
+
+Ce chapitre liminaire a posé le socle de notre intervention. En radiographiant les carences des solutions du marché et en les confrontant aux exigences réelles d'Assiette Gala Sfaxienne, nous avons justifié la conception d'un portail intégralement sur mesure. Le cadre Scrum et la notation UML baliseront la route des cinq sprints à venir, dont le premier --- consacré à la sécurisation des accès --- fait l'objet du chapitre suivant.

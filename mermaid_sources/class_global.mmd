@@ -1,0 +1,126 @@
+classDiagram
+    class User {
+        - id: String
+        - email: String
+        - firstName: String
+        - lastName: String
+        - phone: String
+        - role: UserRole
+        - passwordHash: String
+        - isActive: Boolean
+        - avatarUrl: String
+        - createdAt: DateTime
+    }
+
+    class Address {
+        - id: String
+        - userId: String
+        - label: String
+        - street: String
+        - city: String
+        - zipCode: String
+        - country: String
+        - isDefault: Boolean
+    }
+
+    class Plat {
+        - id: String
+        - nom: String
+        - description: String
+        - prix: Decimal
+        - categoryId: String
+        - imageUrl: String
+        - isAvailable: Boolean
+        - preparationTime: Int
+    }
+
+    class Category {
+        - id: String
+        - nom: String
+        - description: String
+    }
+
+    class Allergen {
+        - id: String
+        - nom: String
+    }
+
+    class Order {
+        - id: String
+        - userId: String
+        - orderNumber: String
+        - status: OrderStatus
+        - subtotal: Decimal
+        - deliveryFee: Decimal
+        - tax: Decimal
+        - totalAmount: Decimal
+        - deliveryAddress: Json
+        - deliveryDate: DateTime
+    }
+
+    class OrderItem {
+        - id: String
+        - orderId: String
+        - platId: String
+        - platName: String
+        - quantity: Int
+        - unitPrice: Decimal
+    }
+
+    class Invoice {
+        - id: String
+        - orderId: String
+        - invoiceNumber: String
+        - amount: Decimal
+        - taxAmount: Decimal
+        - pdfUrl: String
+    }
+
+    class Payment {
+        - id: String
+        - invoiceId: String
+        - amount: Decimal
+        - method: PaymentMethod
+        - status: PaymentStatus
+        - transactionRef: String
+        - paidAt: DateTime
+    }
+
+    class Event {
+        - id: String
+        - userId: String
+        - type: String
+        - title: String
+        - date: DateTime
+        - guestCount: Int
+        - budget: Decimal
+        - status: EventStatus
+        - description: String
+    }
+
+    class Quote {
+        - id: String
+        - eventId: String
+        - totalPrice: Decimal
+        - status: QuoteStatus
+        - items: Json
+        - message: String
+    }
+
+    class Conversation {
+        - sessionId: String
+        - userId: String
+        - messages: Message[]
+    }
+
+    User "1" --> "*" Address : Posseder
+    User "1" --> "*" Order : Passer
+    User "1" --> "*" Event : Demander
+    User "1" --> "*" Conversation : Initier
+    Order "1" --> "*" OrderItem : Contenir
+    Order "1" --> "0..1" Invoice : Generer
+    Invoice "1" --> "0..1" Payment : Associer
+    Plat "*" --> "1" Category : Appartenir
+    Plat "*" --> "*" Allergen : Contenir
+    Event "1" --> "*" Quote : Recevoir
+    OrderItem "*" ..> "1" Plat : Referencer

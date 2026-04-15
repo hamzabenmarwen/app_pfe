@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor Admin
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Catalog as Catalog Service
+    participant Cloud as Cloudinary
+    participant DB as PostgreSQL
+
+    Admin->>Frontend: Remplit formulaire + sélectionne image
+    Frontend->>Gateway: POST /api/upload (multipart/form-data)
+    Gateway->>Catalog: Proxy requête
+    Catalog->>Cloud: Upload image
+    Cloud-->>Catalog: {url: "https://res.cloudinary.com/..."}
+    Catalog-->>Frontend: {imageUrl}
+
+    Frontend->>Gateway: POST /api/plats
+    Note right of Frontend: {nom, description, prix, categoryId, imageUrl, allergènes[]}
+    Gateway->>Catalog: Proxy requête (JWT vérifié, rôle ADMIN)
+    Catalog->>Catalog: Validation des données (Zod)
+    Catalog->>DB: INSERT INTO plats
+    DB-->>Catalog: Plat créé
+    Catalog->>DB: INSERT INTO plat_allergens
+    DB-->>Catalog: Allergènes associés
+    Catalog-->>Gateway: {plat créé}
+    Gateway-->>Frontend: 201 Created
+    Frontend-->>Admin: Notification de succès

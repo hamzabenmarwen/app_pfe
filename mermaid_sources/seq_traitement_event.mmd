@@ -1,0 +1,50 @@
+sequenceDiagram
+    actor Admin
+    actor Client
+    participant Frontend as Frontend React
+    participant Gateway as API Gateway
+    participant Event as Event Service
+    participant DB as PostgreSQL
+
+    Admin->>Frontend: Consulte les demandes d'événements
+    Frontend->>Gateway: GET /api/events (admin)
+    Gateway->>Event: Proxy requête (rôle ADMIN vérifié)
+    Event->>DB: SELECT events WHERE status = PENDING
+    DB-->>Event: Demandes en attente
+    Event-->>Frontend: {events[]}
+    Frontend-->>Admin: Liste des demandes
+
+    Admin->>Frontend: Prépare un devis
+    Note right of Frontend: Sélectionne plats, quantités,<br/>fixe prix, ajoute message
+    Frontend->>Gateway: POST /api/quotes
+    Note right of Frontend: {eventId, items[], totalPrice, message}
+    Gateway->>Event: Proxy requête
+    Event->>DB: INSERT INTO quotes (status: SENT)
+    Event->>DB: UPDATE event SET status = QUOTED
+    DB-->>Event: Devis créé
+    Event-->>Frontend: {quote}
+    Frontend-->>Admin: "Devis envoyé"
+
+    Note over Admin,DB: Le client reçoit le devis
+
+    Client->>Frontend: Consulte ses événements
+    Frontend->>Gateway: GET /api/events/:id
+    Gateway->>Event: requête
+    Event->>DB: SELECT event + quotes
+    Event-->>Frontend: {event, quotes[]}
+    Frontend-->>Client: Affiche devis reçu
+
+    alt Client accepte
+        Client->>Frontend: Clique "Accepter"
+        Frontend->>Gateway: PATCH /api/quotes/:id/accept
+        Gateway->>Event: Proxy
+        Event->>DB: UPDATE quote SET status = ACCEPTED
+        Event->>DB: UPDATE event SET status = CONFIRMED
+        Event-->>Frontend: Confirmé
+    else Client refuse
+        Client->>Frontend: Clique "Refuser"
+        Frontend->>Gateway: PATCH /api/quotes/:id/reject
+        Gateway->>Event: Proxy
+        Event->>DB: UPDATE quote SET status = REJECTED
+        Event-->>Frontend: Refusé
+    end
