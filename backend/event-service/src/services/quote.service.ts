@@ -2,6 +2,9 @@ import prisma from '../config/database';
 import { QuoteStatus, Prisma } from '@prisma/client';
 import { createInvoiceFromAcceptedQuote } from './event-invoice.service';
 
+const QUOTE_TAX_RATE = Number(process.env.EVENT_QUOTE_TAX_RATE || 0.2);
+const QUOTE_DEFAULT_VALID_DAYS = Number(process.env.EVENT_QUOTE_DEFAULT_VALID_DAYS || 30);
+
 function generateQuoteNumber(): string {
   const date = new Date();
   const year = date.getFullYear();
@@ -30,6 +33,47 @@ export interface CreateQuoteData {
   termsConditions?: string;
 }
 
+function getAllowedNextQuoteStatuses(current: QuoteStatus): QuoteStatus[] {
+  const transitions: Record<QuoteStatus, QuoteStatus[]> = {
+    DRAFT: [QuoteStatus.SENT],
+    SENT: [QuoteStatus.VIEWED, QuoteStatus.ACCEPTED, QuoteStatus.REJECTED, QuoteStatus.EXPIRED],
+    VIEWED: [QuoteStatus.ACCEPTED, QuoteStatus.REJECTED, QuoteStatus.EXPIRED],
+    ACCEPTED: [],
+    REJECTED: [],
+    EXPIRED: [],
+  };
+
+  return transitions[current] || [];
+}
+
+function assertQuoteTransition(current: QuoteStatus, next: QuoteStatus) {
+  if (!getAllowedNextQuoteStatuses(current).includes(next)) {
+    throw new Error(`Cannot transition quote from ${current} to ${next}`);
+  }
+}
+
+async function refreshExpiredQuoteStatus(quoteId: string) {
+  const quote = await prisma.quote.findUnique({
+    where: { id: quoteId },
+  });
+
+  if (!quote) {
+    throw new Error('Quote not found');
+  }
+
+  const isExpirable = quote.status === QuoteStatus.SENT || quote.status === QuoteStatus.VIEWED;
+  const isExpired = new Date() > quote.validUntil;
+
+  if (isExpirable && isExpired) {
+    return prisma.quote.update({
+      where: { id: quote.id },
+      data: { status: QuoteStatus.EXPIRED },
+    });
+  }
+
+  return quote;
+}
+
 export async function createQuote(eventId: string, data: CreateQuoteData) {
   // Verify event exists
   const event = await prisma.event.findUnique({
@@ -48,13 +92,13 @@ export async function createQuote(eventId: string, data: CreateQuoteData) {
   const serviceFee = data.serviceFee || 0;
   const deliveryFee = data.deliveryFee || 0;
   const discount = data.discount || 0;
-  const taxRate = 0.20; // 20% TVA
+  const taxRate = QUOTE_TAX_RATE;
   const taxableAmount = subtotal + serviceFee + deliveryFee - discount;
   const tax = taxableAmount * taxRate;
   const totalAmount = taxableAmount + tax;
 
   // Calculate validity date
-  const validDays = data.validDays || 30;
+  const validDays = data.validDays || QUOTE_DEFAULT_VALID_DAYS;
   const validUntil = new Date();
   validUntil.setDate(validUntil.getDate() + validDays);
 
@@ -117,7 +161,11 @@ export async function getQuoteById(quoteId: string) {
   return transformQuote(quote);
 }
 
-export async function getQuoteByNumber(quoteNumber: string) {
+export async function getQuoteByNumber(
+  quoteNumber: string,
+  requesterUserId: string,
+  requesterRole: string
+) {
   const quote = await prisma.quote.findUnique({
     where: { quoteNumber },
     include: {
@@ -130,18 +178,62 @@ export async function getQuoteByNumber(quoteNumber: string) {
     throw new Error('Quote not found');
   }
 
-  // Mark as viewed if first time
-  if (!quote.viewedAt) {
-    await prisma.quote.update({
-      where: { id: quote.id },
-      data: { viewedAt: new Date(), status: QuoteStatus.VIEWED },
+  const isAdmin = requesterRole === 'ADMIN';
+  const isOwner = quote.event?.userId === requesterUserId;
+
+  if (!isAdmin && !isOwner) {
+    throw new Error('Quote not found');
+  }
+
+  const refreshedQuote = await refreshExpiredQuoteStatus(quote.id);
+
+  if (refreshedQuote.status === QuoteStatus.EXPIRED) {
+    return transformQuote({
+      ...quote,
+      status: QuoteStatus.EXPIRED,
     });
   }
 
-  return transformQuote(quote);
+  // Mark as viewed if first time
+  if (!quote.viewedAt && quote.status === QuoteStatus.SENT) {
+    const viewedQuote = await prisma.quote.update({
+      where: { id: quote.id },
+      data: { viewedAt: new Date(), status: QuoteStatus.VIEWED },
+      include: {
+        items: true,
+        event: true,
+      },
+    });
+
+    return transformQuote(viewedQuote);
+  }
+
+  const freshQuote = await prisma.quote.findUnique({
+    where: { id: quote.id },
+    include: {
+      items: true,
+      event: true,
+    },
+  });
+
+  if (!freshQuote) {
+    throw new Error('Quote not found');
+  }
+
+  return transformQuote(freshQuote);
 }
 
 export async function sendQuote(quoteId: string) {
+  const existing = await prisma.quote.findUnique({
+    where: { id: quoteId },
+  });
+
+  if (!existing) {
+    throw new Error('Quote not found');
+  }
+
+  assertQuoteTransition(existing.status, QuoteStatus.SENT);
+
   const quote = await prisma.quote.update({
     where: { id: quoteId },
     data: {
@@ -164,24 +256,28 @@ export async function sendQuote(quoteId: string) {
 }
 
 export async function acceptQuote(quoteId: string, userId: string) {
-  const quote = await prisma.quote.findUnique({
+  const existingQuote = await prisma.quote.findUnique({
     where: { id: quoteId },
     include: { event: true },
   });
 
-  if (!quote) {
+  if (!existingQuote) {
     throw new Error('Quote not found');
   }
 
   // Verify ownership
-  if (quote.event.userId !== userId) {
+  if (existingQuote.event.userId !== userId) {
     throw new Error('Quote not found');
   }
+
+  const quote = await refreshExpiredQuoteStatus(existingQuote.id);
 
   // Check if expired
   if (new Date() > quote.validUntil) {
     throw new Error('Quote has expired');
   }
+
+  assertQuoteTransition(quote.status, QuoteStatus.ACCEPTED);
 
   const updated = await prisma.quote.update({
     where: { id: quoteId },
@@ -208,19 +304,27 @@ export async function acceptQuote(quoteId: string, userId: string) {
 }
 
 export async function rejectQuote(quoteId: string, userId: string) {
-  const quote = await prisma.quote.findUnique({
+  const existingQuote = await prisma.quote.findUnique({
     where: { id: quoteId },
     include: { event: true },
   });
 
-  if (!quote) {
+  if (!existingQuote) {
     throw new Error('Quote not found');
   }
 
   // Verify ownership
-  if (quote.event.userId !== userId) {
+  if (existingQuote.event.userId !== userId) {
     throw new Error('Quote not found');
   }
+
+  const quote = await refreshExpiredQuoteStatus(existingQuote.id);
+
+  if (quote.status === QuoteStatus.EXPIRED) {
+    throw new Error('Quote has expired');
+  }
+
+  assertQuoteTransition(quote.status, QuoteStatus.REJECTED);
 
   const updated = await prisma.quote.update({
     where: { id: quoteId },
@@ -271,7 +375,7 @@ export async function updateQuote(
     const deliveryFee = data.deliveryFee ?? Number(existing.deliveryFee);
     const discount = data.discount ?? Number(existing.discount);
     const taxableAmount = subtotal + serviceFee + deliveryFee - discount;
-    const tax = taxableAmount * 0.20;
+    const tax = taxableAmount * QUOTE_TAX_RATE;
     const totalAmount = taxableAmount + tax;
 
     updateData = {

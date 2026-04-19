@@ -83,8 +83,12 @@ export async function getAllInvoices(page = 1, limit = 10) {
 }
 
 function transformInvoice(invoice: any) {
+  const normalizedStatus = invoice.payment?.status || 'PENDING';
+
   return {
     ...invoice,
+    status: normalizedStatus,
+    paidAt: invoice.payment?.paidAt || null,
     amount: Number(invoice.amount),
     taxAmount: Number(invoice.taxAmount),
     order: invoice.order

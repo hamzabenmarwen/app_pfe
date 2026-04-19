@@ -42,10 +42,23 @@ const updatePlatSchema = z.object({
   allergenIds: z.array(z.string().uuid()).optional(),
 });
 
+const updateRecipeSchema = z.object({
+  lines: z.array(
+    z.object({
+      ingredientId: z.string().uuid('Invalid ingredient ID'),
+      quantityPerPlat: z.number().positive('quantityPerPlat must be positive'),
+    })
+  ).min(1, 'At least one recipe line is required'),
+});
+
 // Public routes
 router.get('/', optionalAuth, platController.getAllPlats);
 router.get('/popular', platController.getPopularPlats);
 router.get('/:id', platController.getPlatById);
+
+// Recipe routes (admin only)
+router.get('/:id/recipe', authMiddleware, adminMiddleware, platController.getPlatRecipe);
+router.put('/:id/recipe', authMiddleware, adminMiddleware, validateBody(updateRecipeSchema), platController.setPlatRecipe);
 
 // Admin routes
 router.post('/', authMiddleware, adminMiddleware, validateBody(createPlatSchema), platController.createPlat);

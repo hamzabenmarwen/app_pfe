@@ -11,7 +11,8 @@ const createTemplateSchema = z.object({
   name: z.string().min(1),
   eventType: z.enum([
     'WEDDING', 'CORPORATE', 'BIRTHDAY', 'GRADUATION',
-    'BABY_SHOWER', 'FUNERAL', 'RELIGIOUS', 'OTHER'
+    'BABY_SHOWER', 'FUNERAL', 'RELIGIOUS', 'COCKTAIL',
+    'CONFERENCE', 'PRIVATE', 'OTHER'
   ]),
   description: z.string().optional(),
   defaultGuestCount: z.number().int().positive().optional(),

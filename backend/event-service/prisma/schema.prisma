@@ -49,6 +49,18 @@ enum EventInvoiceStatus {
   CANCELLED
 }
 
+enum EventInvoicePaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum EventInvoicePaymentMethod {
+  CASH
+  FLOUCI
+}
+
 model Event {
   id              String       @id @default(uuid())
   userId          String       // Reference to user in auth-service
@@ -163,9 +175,26 @@ model EventInvoice {
 
   event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   quote         Quote              @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  payment       EventInvoicePayment?
 
   @@index([eventId])
   @@index([userId])
+  @@index([status])
+}
+
+model EventInvoicePayment {
+  id             String                   @id @default(uuid())
+  invoiceId      String                   @unique
+  amount         Decimal                  @db.Decimal(10, 2)
+  method         EventInvoicePaymentMethod @default(CASH)
+  status         EventInvoicePaymentStatus @default(PENDING)
+  transactionRef String?                  @unique
+  paymentUrl     String?
+  paidAt         DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  invoice        EventInvoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
   @@index([status])
 }
 

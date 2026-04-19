@@ -144,9 +144,51 @@ export async function toggleUserStatus(userId: string) {
 }
 
 export async function deleteUser(userId: string) {
-  await prisma.user.delete({
+  return deleteUserByMode(userId, 'anonymize');
+}
+
+export type UserDeletionMode = 'anonymize' | 'delete';
+
+async function ensureNotLastAdmin(userId: string) {
+  const user = await prisma.user.findUnique({
     where: { id: userId },
+    select: { id: true, role: true },
   });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (user.role !== 'ADMIN') {
+    return user;
+  }
+
+  const adminCount = await prisma.user.count({
+    where: { role: 'ADMIN' },
+  });
+
+  if (adminCount <= 1) {
+    throw new Error('Impossible de supprimer ou anonymiser le dernier compte admin');
+  }
+
+  return user;
+}
+
+export async function deleteUserByMode(userId: string, mode: UserDeletionMode = 'anonymize') {
+  await ensureNotLastAdmin(userId);
+
+  if (mode === 'delete') {
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+    return { mode: 'delete' as const };
+  }
+
+  const result = await anonymizeUserData(userId);
+  return {
+    mode: 'anonymize' as const,
+    ...result,
+  };
 }
 
 export async function exportUserData(userId: string) {
@@ -219,6 +261,7 @@ export async function anonymizeUserData(userId: string) {
         phone: null,
         avatarUrl: null,
         passwordHash: null,
+        role: 'CLIENT',
         isActive: false,
         emailVerified: false,
       },

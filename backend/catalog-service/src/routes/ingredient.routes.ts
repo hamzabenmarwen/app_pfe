@@ -4,6 +4,12 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
+// Internal reservation routes used by order-service
+router.post('/internal/reservations', ingredientController.createStockReservationInternal);
+router.get('/internal/reservations/:reference', ingredientController.getStockReservationInternal);
+router.post('/internal/reservations/:reference/release', ingredientController.releaseStockReservationInternal);
+router.post('/internal/reservations/:reference/consume', ingredientController.consumeStockReservationInternal);
+
 // Stock management routes (for admin stock page)
 router.get('/stock/all', authMiddleware, adminMiddleware, ingredientController.getAllIngredientsStock);
 router.get('/stock/low', authMiddleware, adminMiddleware, ingredientController.getLowStockItems);

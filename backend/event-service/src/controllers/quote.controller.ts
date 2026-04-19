@@ -48,7 +48,16 @@ export async function getQuoteById(req: AuthenticatedRequest, res: Response) {
 
 export async function getQuoteByNumber(req: AuthenticatedRequest, res: Response) {
   try {
-    const quote = await quoteService.getQuoteByNumber(req.params.quoteNumber);
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'Authentication required' });
+      return;
+    }
+
+    const quote = await quoteService.getQuoteByNumber(
+      req.params.quoteNumber,
+      req.user.userId,
+      req.user.role
+    );
 
     res.json({
       success: true,

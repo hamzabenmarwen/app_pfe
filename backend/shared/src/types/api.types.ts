@@ -3,10 +3,10 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
-  errors?: ValidationError[];
+  errors?: FieldValidationError[];
 }
 
-export interface ValidationError {
+export interface FieldValidationError {
   field: string;
   message: string;
 }

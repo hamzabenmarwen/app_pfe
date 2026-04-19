@@ -134,12 +134,31 @@ export async function updateUserRole(req: Request, res: Response) {
   }
 }
 
-export async function deleteUser(req: Request, res: Response) {
+export async function deleteUser(req: AuthenticatedRequest, res: Response) {
   try {
-    await userService.deleteUser(req.params.id);
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+      return;
+    }
+
+    if (req.user.userId === req.params.id) {
+      res.status(400).json({
+        success: false,
+        error: 'Vous ne pouvez pas supprimer votre propre compte admin',
+      });
+      return;
+    }
+
+    const mode = req.query.mode === 'delete' ? 'delete' : 'anonymize';
+    const result = await userService.deleteUserByMode(req.params.id, mode);
+
     res.json({
       success: true,
-      message: 'User deleted successfully',
+      data: result,
+      message: mode === 'delete' ? 'Compte supprimé définitivement' : 'Compte anonymisé avec succès',
     });
   } catch (error: any) {
     res.status(400).json({

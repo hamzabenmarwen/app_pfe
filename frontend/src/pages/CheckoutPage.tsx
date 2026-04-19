@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { MapPinIcon, CalendarIcon, BanknotesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, BanknotesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useCartStore } from '@/stores/cart.store';
 import { orderService } from '@/services/order.service';
 import { paymentService } from '@/services/payment.service';
@@ -13,8 +13,6 @@ interface CheckoutFormData {
   deliveryAddress: string;
   city: string;
   postalCode: string;
-  deliveryDate: string;
-  deliveryTime: string;
   notes?: string;
   paymentMethod: 'CASH' | 'FLOUCI';
 }
@@ -42,10 +40,14 @@ export default function CheckoutPage() {
   // Professional catering: minimum 48h lead time
   const MIN_LEAD_HOURS = 48;
   const MIN_ORDER_AMOUNT = 30;
-  const minDeliveryDate = new Date();
-  minDeliveryDate.setHours(minDeliveryDate.getHours() + MIN_LEAD_HOURS);
-  const minDate = minDeliveryDate.toISOString().split('T')[0];
   const isBelowMinimum = subtotal < MIN_ORDER_AMOUNT;
+
+  const getAutomaticDeliveryDate = () => {
+    const autoDate = new Date();
+    autoDate.setHours(autoDate.getHours() + MIN_LEAD_HOURS + 2);
+    autoDate.setMinutes(0, 0, 0);
+    return autoDate;
+  };
 
   const onSubmit = async (data: CheckoutFormData) => {
     if (items.length === 0) {
@@ -55,15 +57,6 @@ export default function CheckoutPage() {
 
     if (isBelowMinimum) {
       toast.error(`Commande minimum de ${MIN_ORDER_AMOUNT} DT requise`);
-      return;
-    }
-
-    // Validate lead time
-    const selectedDate = new Date(`${data.deliveryDate}T${data.deliveryTime}`);
-    const now = new Date();
-    const diffHours = (selectedDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    if (diffHours < MIN_LEAD_HOURS) {
-      toast.error(`Les commandes doivent être passées au moins ${MIN_LEAD_HOURS}h à l'avance`);
       return;
     }
 
@@ -84,7 +77,7 @@ export default function CheckoutPage() {
           zipCode: data.postalCode,
           country: 'Tunisie',
         },
-        deliveryDate: new Date(`${data.deliveryDate}T${data.deliveryTime}`).toISOString(),
+        deliveryDate: getAutomaticDeliveryDate().toISOString(),
         notes: data.notes,
         paymentMethod: data.paymentMethod,
       };
@@ -146,7 +139,7 @@ export default function CheckoutPage() {
             <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-amber-800">Délai de commande : {MIN_LEAD_HOURS}h minimum</p>
-              <p className="text-amber-600">Les commandes traiteur nécessitent un délai de préparation. Commande minimum : {MIN_ORDER_AMOUNT} DT.</p>
+              <p className="text-amber-600">Les commandes traiteur nécessitent un délai de préparation. Commande minimum : {MIN_ORDER_AMOUNT} DT. La date et l'heure exactes seront confirmées après validation.</p>
             </div>
           </div>
 
@@ -202,51 +195,6 @@ export default function CheckoutPage() {
                     })}
                     error={errors.postalCode?.message}
                   />
-                </div>
-              </div>
-
-              {/* Delivery Date & Time */}
-              <div className="glass-card p-6 hover:shadow-lg hover:shadow-black/10 transition-shadow">
-                <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-primary-400" />
-                  Date et heure de livraison
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    type="date"
-                    label="Date de livraison"
-                    min={minDate}
-                    {...register('deliveryDate', { required: 'Date requise' })}
-                    error={errors.deliveryDate?.message}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Heure de livraison
-                    </label>
-                    <select
-                      {...register('deliveryTime', { required: 'Heure requise' })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20/30 focus:border-primary-400 bg-white/80"
-                    >
-                      <option value="">Sélectionnez une heure</option>
-                      <option value="11:00">11:00</option>
-                      <option value="11:30">11:30</option>
-                      <option value="12:00">12:00</option>
-                      <option value="12:30">12:30</option>
-                      <option value="13:00">13:00</option>
-                      <option value="13:30">13:30</option>
-                      <option value="14:00">14:00</option>
-                      <option value="18:00">18:00</option>
-                      <option value="18:30">18:30</option>
-                      <option value="19:00">19:00</option>
-                      <option value="19:30">19:30</option>
-                      <option value="20:00">20:00</option>
-                      <option value="20:30">20:30</option>
-                      <option value="21:00">21:00</option>
-                    </select>
-                    {errors.deliveryTime && (
-                      <p className="text-red-500 text-sm mt-1">{errors.deliveryTime.message}</p>
-                    )}
-                  </div>
                 </div>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">

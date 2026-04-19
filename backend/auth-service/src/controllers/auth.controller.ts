@@ -2,6 +2,79 @@ import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
+const REFRESH_COOKIE_NAME = process.env.AUTH_REFRESH_COOKIE_NAME || 'ag_refresh_token';
+const REFRESH_COOKIE_PATH = process.env.AUTH_REFRESH_COOKIE_PATH || '/api/auth';
+const REFRESH_COOKIE_MAX_AGE_MS = (() => {
+  const seconds = Number(process.env.JWT_REFRESH_EXPIRY_SECONDS || '604800');
+  if (Number.isNaN(seconds) || seconds <= 0) {
+    return 7 * 24 * 60 * 60 * 1000;
+  }
+  return seconds * 1000;
+})();
+
+function getCookieSameSite(): 'strict' | 'lax' | 'none' {
+  const raw = (process.env.AUTH_REFRESH_COOKIE_SAME_SITE || 'lax').trim().toLowerCase();
+  if (raw === 'strict' || raw === 'none') {
+    return raw;
+  }
+  return 'lax';
+}
+
+function shouldUseSecureCookies() {
+  const explicit = process.env.AUTH_REFRESH_COOKIE_SECURE;
+  if (explicit) {
+    const value = explicit.trim().toLowerCase();
+    return value === 'true' || value === '1' || value === 'yes';
+  }
+  return (process.env.NODE_ENV || 'development') === 'production';
+}
+
+function parseCookies(req: Request): Record<string, string> {
+  const rawCookie = req.headers.cookie;
+  if (!rawCookie) {
+    return {};
+  }
+
+  return rawCookie.split(';').reduce<Record<string, string>>((acc, item) => {
+    const [rawName, ...rawValueParts] = item.trim().split('=');
+    if (!rawName || rawValueParts.length === 0) {
+      return acc;
+    }
+
+    acc[decodeURIComponent(rawName)] = decodeURIComponent(rawValueParts.join('='));
+    return acc;
+  }, {});
+}
+
+function getRefreshTokenFromRequest(req: Request): string | null {
+  if (typeof req.body?.refreshToken === 'string' && req.body.refreshToken.length > 0) {
+    return req.body.refreshToken;
+  }
+
+  const cookies = parseCookies(req);
+  const cookieToken = cookies[REFRESH_COOKIE_NAME];
+  return cookieToken || null;
+}
+
+function setRefreshTokenCookie(res: Response, refreshToken: string) {
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
+    httpOnly: true,
+    secure: shouldUseSecureCookies(),
+    sameSite: getCookieSameSite(),
+    path: REFRESH_COOKIE_PATH,
+    maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+  });
+}
+
+function clearRefreshTokenCookie(res: Response) {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: shouldUseSecureCookies(),
+    sameSite: getCookieSameSite(),
+    path: REFRESH_COOKIE_PATH,
+  });
+}
+
 export async function register(req: Request, res: Response) {
   try {
     const result = await authService.register(req.body);
@@ -21,9 +94,12 @@ export async function register(req: Request, res: Response) {
 export async function login(req: Request, res: Response) {
   try {
     const result = await authService.login(req.body);
+    setRefreshTokenCookie(res, result.refreshToken);
+    const { refreshToken, ...publicResult } = result;
+
     res.json({
       success: true,
-      data: result,
+      data: publicResult,
       message: 'Login successful',
     });
   } catch (error: any) {
@@ -36,7 +112,7 @@ export async function login(req: Request, res: Response) {
 
 export async function refreshToken(req: Request, res: Response) {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = getRefreshTokenFromRequest(req);
     
     if (!refreshToken) {
       res.status(400).json({
@@ -47,9 +123,13 @@ export async function refreshToken(req: Request, res: Response) {
     }
 
     const tokens = await authService.refreshAccessToken(refreshToken);
+    setRefreshTokenCookie(res, tokens.refreshToken);
+
     res.json({
       success: true,
-      data: tokens,
+      data: {
+        accessToken: tokens.accessToken,
+      },
     });
   } catch (error: any) {
     res.status(401).json({
@@ -61,11 +141,13 @@ export async function refreshToken(req: Request, res: Response) {
 
 export async function logout(req: Request, res: Response) {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = getRefreshTokenFromRequest(req);
     
     if (refreshToken) {
       await authService.logout(refreshToken);
     }
+
+    clearRefreshTokenCookie(res);
 
     res.json({
       success: true,
@@ -90,6 +172,8 @@ export async function logoutAll(req: AuthenticatedRequest, res: Response) {
     }
 
     await authService.logoutAll(req.user.userId);
+    clearRefreshTokenCookie(res);
+
     res.json({
       success: true,
       message: 'Logged out from all devices',
@@ -217,6 +301,35 @@ export async function verifyEmail(req: Request, res: Response) {
   }
 }
 
+export async function verifyEmailCode(req: Request, res: Response) {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      res.status(400).json({
+        success: false,
+        error: 'Email and verification code are required',
+      });
+      return;
+    }
+
+    const result = await authService.verifyEmailCode(email, code);
+    setRefreshTokenCookie(res, result.refreshToken);
+    const { refreshToken, ...publicResult } = result;
+
+    res.json({
+      success: true,
+      data: publicResult,
+      message: 'Email verified successfully',
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
 export async function resendVerificationEmail(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) {
@@ -232,6 +345,32 @@ export async function resendVerificationEmail(req: AuthenticatedRequest, res: Re
     res.json({
       success: true,
       message: 'Verification email sent',
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+export async function resendVerificationByEmail(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        error: 'Email is required',
+      });
+      return;
+    }
+
+    const result = await authService.resendVerificationEmailByEmail(email);
+
+    res.json({
+      success: true,
+      message: result.message,
     });
   } catch (error: any) {
     res.status(400).json({
@@ -279,18 +418,31 @@ export async function googleAuth(req: Request, res: Response) {
       lastName: payload.family_name || '',
       provider: 'google',
       providerId: payload.sub,
+      avatarUrl: payload.picture,
     });
+
+    if (result.requiresVerification) {
+      res.json({
+        success: true,
+        data: result,
+        message: result.message,
+      });
+      return;
+    }
+
+    setRefreshTokenCookie(res, result.refreshToken);
+    const { refreshToken, ...publicResult } = result;
 
     res.json({
       success: true,
-      data: result,
+      data: publicResult,
       message: 'Google login successful',
     });
   } catch (error: any) {
     console.error('Google auth error:', error);
     res.status(400).json({
       success: false,
-      error: 'Google authentication failed',
+      error: error?.message || 'Google authentication failed',
     });
   }
 }

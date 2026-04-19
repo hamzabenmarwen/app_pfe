@@ -48,7 +48,7 @@ function escapeHtml(str: string): string {
 
 // Email templates
 const templates = {
-  verifyEmail: (name: string, token: string) => {
+  verifyEmail: (name: string, token: string, code?: string) => {
     const safeName = escapeHtml(name);
     return {
     subject: `Vérifiez votre adresse email - ${FROM_NAME}`,
@@ -63,6 +63,8 @@ const templates = {
           .header h1 { color: white; margin: 0; }
           .content { padding: 30px; background: #f9fafb; }
           .button { display: inline-block; background: #e8614a; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+          .code-box { margin: 18px 0; padding: 14px; border: 1px dashed #e8614a; border-radius: 10px; background: #fff3f0; text-align: center; }
+          .code { font-size: 30px; letter-spacing: 0.35em; font-weight: bold; color: #e8614a; font-family: monospace; }
           .footer { padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
         </style>
       </head>
@@ -72,11 +74,14 @@ const templates = {
         </div>
         <div class="content">
           <h2>Bienvenue, ${safeName} !</h2>
-          <p>Merci de vous être inscrit sur ${FROM_NAME}. Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
-          <p style="text-align: center;">
-            <a href="${FRONTEND_URL}/verify-email?token=${token}" class="button">Vérifier mon email</a>
-          </p>
-          <p>Ce lien expire dans 24 heures.</p>
+          <p>Merci de vous être inscrit sur ${FROM_NAME}. Pour activer votre compte, saisissez le code ci-dessous dans l'ecran de verification :</p>
+          ${code ? `
+          <div class="code-box">
+            <p style="margin: 0 0 8px 0;">Code de verification</p>
+            <div class="code">${escapeHtml(code)}</div>
+          </div>
+          ` : ''}
+          <p>Le code expire dans 24 heures.</p>
           <p>Si vous n'avez pas créé de compte, ignorez cet email.</p>
         </div>
         <div class="footer">
@@ -85,7 +90,7 @@ const templates = {
       </body>
       </html>
     `,
-    text: `Bienvenue ${safeName} ! Vérifiez votre email en visitant: ${FRONTEND_URL}/verify-email?token=${token}`,
+    text: `Bienvenue ${safeName} ! Votre code de verification: ${code || 'N/A'}. Ce code expire dans 24 heures.`,
   }; },
 
   resetPassword: (name: string, token: string) => {
@@ -312,8 +317,8 @@ export async function sendEmail(options: { to: string; subject: string; html: st
   }
 }
 
-export async function sendVerificationEmail(email: string, name: string, token: string) {
-  const template = templates.verifyEmail(name, token);
+export async function sendVerificationEmail(email: string, name: string, token: string, code?: string) {
+  const template = templates.verifyEmail(name, token, code);
   return sendEmail({ to: email, subject: template.subject, html: template.html, text: template.text });
 }
 

@@ -17,7 +17,7 @@ export const paymentService = {
   },
 
   async verifyFlouci(paymentId: string) {
-    const response = await api.get(`/payments/flouci/verify/${paymentId}`);
+    const response = await api.post(`/payments/flouci/verify/${paymentId}`);
     return response.data;
   },
 

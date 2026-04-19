@@ -24,13 +24,28 @@ export const authService = {
     return response.data;
   },
 
-  async logout(refreshToken: string) {
-    const response = await api.post('/auth/logout', { refreshToken });
+  async verifyEmailToken(token: string) {
+    const response = await api.get(`/auth/verify-email?token=${encodeURIComponent(token)}`);
     return response.data;
   },
 
-  async refresh(refreshToken: string) {
-    const response = await api.post('/auth/refresh', { refreshToken });
+  async verifyEmailCode(email: string, code: string) {
+    const response = await api.post('/auth/verify-email-code', { email, code });
+    return response.data;
+  },
+
+  async resendVerificationCode(email: string) {
+    const response = await api.post('/auth/resend-verification-email', { email });
+    return response.data;
+  },
+
+  async logout() {
+    const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  async refresh() {
+    const response = await api.post('/auth/refresh');
     return response.data;
   },
 

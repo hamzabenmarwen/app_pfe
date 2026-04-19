@@ -5,6 +5,7 @@ import { Bars3Icon, XMarkIcon, ShoppingCartIcon, ArrowRightOnRectangleIcon } fro
 import { useAuthStore } from '@/stores/auth.store';
 import { useCartStore } from '@/stores/cart.store';
 import { useSiteStore } from '@/stores/site.store';
+import { authService } from '@/services/auth.service';
 
 const navigation = [
   { name: 'Accueil', href: '/' },
@@ -32,9 +33,15 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Silent fallback: local logout should still happen.
+    } finally {
+      logout();
+      navigate('/');
+    }
   };
 
   return (

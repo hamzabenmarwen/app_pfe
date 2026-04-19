@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PrinterIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { PrinterIcon } from '@heroicons/react/24/outline';
 import { orderService, type Order } from '@/services/order.service';
 import { catalogService, type Expense } from '@/services/catalog.service';
 import { LoadingSpinner, Button } from '@/components/ui';

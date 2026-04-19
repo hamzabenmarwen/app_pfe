@@ -1,6 +1,11 @@
 import prisma from '../config/database';
 import { EventType, EventStatus, QuoteStatus, Prisma } from '@prisma/client';
 
+const EVENT_MIN_LEAD_HOURS_FOR_QUOTE_REQUEST = Number(
+  process.env.EVENT_MIN_LEAD_HOURS_FOR_QUOTE_REQUEST || 48
+);
+const EVENT_MAX_GUESTS_PER_DAY = Number(process.env.EVENT_MAX_GUESTS_PER_DAY || 0);
+
 export interface Venue {
   name?: string;
   address: string;
@@ -39,7 +44,43 @@ export interface CreateEventData {
   contactEmail?: string;
 }
 
+function assertGuestCountBounds(guestCount: number, guestCountMin?: number, guestCountMax?: number) {
+  if (!Number.isInteger(guestCount) || guestCount <= 0) {
+    throw new Error('Guest count must be a positive integer');
+  }
+
+  if (guestCountMin !== undefined && guestCountMin > guestCount) {
+    throw new Error('guestCountMin cannot exceed guestCount');
+  }
+
+  if (guestCountMax !== undefined && guestCountMax < guestCount) {
+    throw new Error('guestCountMax cannot be less than guestCount');
+  }
+
+  if (
+    guestCountMin !== undefined &&
+    guestCountMax !== undefined &&
+    guestCountMin > guestCountMax
+  ) {
+    throw new Error('guestCountMin cannot exceed guestCountMax');
+  }
+}
+
+function isFutureDate(date: Date) {
+  return date.getTime() > Date.now();
+}
+
 export async function createEvent(userId: string, data: CreateEventData) {
+  if (!(data.eventDate instanceof Date) || Number.isNaN(data.eventDate.getTime())) {
+    throw new Error('Invalid event date');
+  }
+
+  if (!isFutureDate(data.eventDate)) {
+    throw new Error('Event date must be in the future');
+  }
+
+  assertGuestCountBounds(data.guestCount, data.guestCountMin, data.guestCountMax);
+
   const event = await prisma.event.create({
     data: {
       userId,
@@ -202,6 +243,16 @@ export async function updateEvent(
     throw new Error('Event not found');
   }
 
+  const effectiveGuestCount = data.guestCount ?? existing.guestCount;
+  const effectiveGuestCountMin = data.guestCountMin ?? existing.guestCountMin ?? undefined;
+  const effectiveGuestCountMax = data.guestCountMax ?? existing.guestCountMax ?? undefined;
+
+  assertGuestCountBounds(effectiveGuestCount, effectiveGuestCountMin, effectiveGuestCountMax);
+
+  if (data.eventDate !== undefined && !isFutureDate(data.eventDate)) {
+    throw new Error('Event date must be in the future');
+  }
+
   const updateData: Prisma.EventUpdateInput = {};
   
   if (data.name !== undefined) updateData.name = data.name;
@@ -349,10 +400,72 @@ export async function requestQuote(eventId: string, userId?: string) {
 
   const event = await prisma.event.findFirst({
     where,
+    include: {
+      menuItems: true,
+      quotes: {
+        where: {
+          status: {
+            in: [QuoteStatus.DRAFT, QuoteStatus.SENT, QuoteStatus.VIEWED],
+          },
+        },
+      },
+    },
   });
 
   if (!event) {
     throw new Error('Event not found');
+  }
+
+  if (event.status !== EventStatus.DRAFT) {
+    throw new Error('Quote request is only allowed for draft events');
+  }
+
+  if (!isFutureDate(event.eventDate)) {
+    throw new Error('Cannot request a quote for a past event date');
+  }
+
+  const minimumQuoteRequestDate = new Date(
+    Date.now() + EVENT_MIN_LEAD_HOURS_FOR_QUOTE_REQUEST * 60 * 60 * 1000
+  );
+  if (event.eventDate.getTime() < minimumQuoteRequestDate.getTime()) {
+    throw new Error(
+      `Quote requests require at least ${EVENT_MIN_LEAD_HOURS_FOR_QUOTE_REQUEST} hours lead time`
+    );
+  }
+
+  assertGuestCountBounds(event.guestCount, event.guestCountMin ?? undefined, event.guestCountMax ?? undefined);
+
+  if (!event.contactEmail && !event.contactPhone) {
+    throw new Error('At least one contact method (email or phone) is required');
+  }
+
+  if (!event.menuItems.length) {
+    throw new Error('Add at least one menu item before requesting a quote');
+  }
+
+  if (event.quotes.length > 0) {
+    throw new Error('This event already has an active quote in progress');
+  }
+
+  if (EVENT_MAX_GUESTS_PER_DAY > 0) {
+    const dayStart = new Date(event.eventDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(event.eventDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const sameDayEvents = await prisma.event.findMany({
+      where: {
+        id: { not: event.id },
+        status: { in: [EventStatus.QUOTE_ACCEPTED, EventStatus.CONFIRMED, EventStatus.IN_PROGRESS] },
+        eventDate: { gte: dayStart, lte: dayEnd },
+      },
+      select: { guestCount: true },
+    });
+
+    const occupiedGuests = sameDayEvents.reduce((sum, current) => sum + current.guestCount, 0);
+    if (occupiedGuests + event.guestCount > EVENT_MAX_GUESTS_PER_DAY) {
+      throw new Error('Capacity exceeded for this date. Please choose another date.');
+    }
   }
 
   const updated = await prisma.event.update({

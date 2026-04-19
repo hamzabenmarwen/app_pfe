@@ -18,9 +18,82 @@ function getRefreshSecret() {
 }
 function getAccessExpiry() { return parseInt(process.env.JWT_ACCESS_EXPIRY_SECONDS || '900'); }
 function getRefreshExpiry() { return parseInt(process.env.JWT_REFRESH_EXPIRY_SECONDS || '604800'); }
+const EMAIL_VERIFICATION_CODE_LENGTH = 6;
+const OTP_FAILURE_WINDOW_MS = parseInt(process.env.OTP_FAILURE_WINDOW_MS || '900000');
+const OTP_FAILURE_MAX_ATTEMPTS = parseInt(process.env.OTP_FAILURE_MAX_ATTEMPTS || '5');
+const OTP_FAILURE_LOCK_MS = parseInt(process.env.OTP_FAILURE_LOCK_MS || '900000');
+const GENERIC_VERIFICATION_RESEND_MESSAGE = 'Si un compte existe avec cette adresse, un code de verification a ete envoye.';
+
+interface OtpFailureState {
+  count: number;
+  startedAt: number;
+  lockUntil: number;
+}
+
+const otpFailureAttempts = new Map<string, OtpFailureState>();
+
 function isEmailVerificationBypassed() {
   const raw = (process.env.AUTH_BYPASS_EMAIL_VERIFICATION || '').trim().toLowerCase();
   return raw === 'true' || raw === '1' || raw === 'yes';
+}
+
+function generateEmailVerificationCode(token: string): string {
+  const digest = crypto.createHash('sha256').update(token).digest('hex');
+  const seed = parseInt(digest.slice(0, 8), 16);
+  const code = (seed % 900000) + 100000;
+  return String(code).padStart(EMAIL_VERIFICATION_CODE_LENGTH, '0');
+}
+
+function assertOtpNotLocked(email: string) {
+  const state = otpFailureAttempts.get(email);
+  if (!state) {
+    return;
+  }
+
+  const now = Date.now();
+  if (state.lockUntil > now) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((state.lockUntil - now) / 1000));
+    throw new Error(`Trop de tentatives. Reessayez dans ${retryAfterSeconds} secondes.`);
+  }
+
+  if (now - state.startedAt > OTP_FAILURE_WINDOW_MS) {
+    otpFailureAttempts.delete(email);
+  }
+}
+
+function registerOtpFailure(email: string): { locked: boolean; remainingAttempts: number } {
+  const now = Date.now();
+  const current = otpFailureAttempts.get(email);
+
+  if (!current || now - current.startedAt > OTP_FAILURE_WINDOW_MS) {
+    const nextState: OtpFailureState = {
+      count: 1,
+      startedAt: now,
+      lockUntil: 0,
+    };
+    otpFailureAttempts.set(email, nextState);
+    return {
+      locked: false,
+      remainingAttempts: Math.max(0, OTP_FAILURE_MAX_ATTEMPTS - nextState.count),
+    };
+  }
+
+  current.count += 1;
+  if (current.count >= OTP_FAILURE_MAX_ATTEMPTS) {
+    current.lockUntil = now + OTP_FAILURE_LOCK_MS;
+    otpFailureAttempts.set(email, current);
+    return { locked: true, remainingAttempts: 0 };
+  }
+
+  otpFailureAttempts.set(email, current);
+  return {
+    locked: false,
+    remainingAttempts: Math.max(0, OTP_FAILURE_MAX_ATTEMPTS - current.count),
+  };
+}
+
+function clearOtpFailures(email: string) {
+  otpFailureAttempts.delete(email);
 }
 
 export interface RegisterData {
@@ -99,8 +172,10 @@ export async function register(data: RegisterData) {
     },
   });
 
+  const verificationCode = generateEmailVerificationCode(verificationToken);
+
   // Send verification email (async, don't wait)
-  sendVerificationEmail(user.email, user.firstName, verificationToken).catch(console.error);
+  sendVerificationEmail(user.email, user.firstName, verificationToken, verificationCode).catch(console.error);
   
   // Send welcome email (async, don't wait)
   sendWelcomeEmail(user.email, user.firstName).catch(console.error);
@@ -363,6 +438,117 @@ export async function verifyEmail(token: string) {
   return { message: 'Email verified successfully' };
 }
 
+export async function verifyEmailCode(email: string, code: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  assertOtpNotLocked(normalizedEmail);
+
+  const normalizedCode = code.replace(/\D/g, '').slice(0, EMAIL_VERIFICATION_CODE_LENGTH);
+
+  if (normalizedCode.length !== EMAIL_VERIFICATION_CODE_LENGTH) {
+    const state = registerOtpFailure(normalizedEmail);
+    if (state.locked) {
+      throw new Error('Trop de tentatives. Reessayez plus tard.');
+    }
+    throw new Error(`Code de verification invalide. Il vous reste ${state.remainingAttempts} tentative(s).`);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (!user) {
+    const state = registerOtpFailure(normalizedEmail);
+    if (state.locked) {
+      throw new Error('Trop de tentatives. Reessayez plus tard.');
+    }
+    throw new Error(`Code de verification invalide. Il vous reste ${state.remainingAttempts} tentative(s).`);
+  }
+
+  const activeTokens = await prisma.emailVerificationToken.findMany({
+    where: {
+      userId: user.id,
+      usedAt: null,
+      expiresAt: {
+        gte: new Date(),
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 10,
+  });
+
+  if (activeTokens.length === 0) {
+    const state = registerOtpFailure(normalizedEmail);
+    if (state.locked) {
+      throw new Error('Trop de tentatives. Reessayez plus tard.');
+    }
+    throw new Error(`Code de verification invalide. Il vous reste ${state.remainingAttempts} tentative(s).`);
+  }
+
+  const matchedToken = activeTokens.find((entry) => generateEmailVerificationCode(entry.token) === normalizedCode);
+
+  if (!matchedToken) {
+    const state = registerOtpFailure(normalizedEmail);
+    if (state.locked) {
+      throw new Error('Trop de tentatives. Reessayez plus tard.');
+    }
+    throw new Error(`Code de verification invalide. Il vous reste ${state.remainingAttempts} tentative(s).`);
+  }
+
+  clearOtpFailures(normalizedEmail);
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    }),
+    prisma.emailVerificationToken.update({
+      where: { id: matchedToken.id },
+      data: { usedAt: new Date() },
+    }),
+    prisma.emailVerificationToken.deleteMany({
+      where: {
+        userId: user.id,
+        id: { not: matchedToken.id },
+      },
+    }),
+  ]);
+
+  const tokens = generateTokens(user.id, user.email, user.role);
+  const refreshExpiresAt = new Date();
+  refreshExpiresAt.setDate(refreshExpiresAt.getDate() + 7);
+
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: tokens.refreshToken,
+      expiresAt: refreshExpiresAt,
+    },
+  });
+
+  const authenticatedUser = {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    role: user.role,
+    avatarUrl: user.avatarUrl,
+    isActive: user.isActive,
+    emailVerified: true,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  return {
+    message: 'Email verified successfully',
+    user: authenticatedUser,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+  };
+}
+
 export async function resendVerificationEmail(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -377,15 +563,42 @@ export async function resendVerificationEmail(userId: string) {
   }
 
   const token = await createEmailVerificationToken(userId);
+  const verificationCode = generateEmailVerificationCode(token);
 
   // Send the verification email
   try {
-    await sendVerificationEmail(user.email, user.firstName, token);
+    await sendVerificationEmail(user.email, user.firstName, token, verificationCode);
   } catch (err) {
     console.error('Failed to send verification email:', err);
   }
 
   return { user: { email: user.email, firstName: user.firstName } };
+}
+
+export async function resendVerificationEmailByEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (!user) {
+    return { message: GENERIC_VERIFICATION_RESEND_MESSAGE };
+  }
+
+  if (user.emailVerified) {
+    return { message: GENERIC_VERIFICATION_RESEND_MESSAGE };
+  }
+
+  const token = await createEmailVerificationToken(user.id);
+  const verificationCode = generateEmailVerificationCode(token);
+
+  try {
+    await sendVerificationEmail(user.email, user.firstName, token, verificationCode);
+  } catch (err) {
+    console.error('Failed to send verification email:', err);
+  }
+
+  return { message: GENERIC_VERIFICATION_RESEND_MESSAGE };
 }
 
 // ============ OAuth Functions ============
@@ -399,6 +612,81 @@ export interface OAuthUserData {
   avatarUrl?: string;
   accessToken?: string;
   refreshToken?: string;
+}
+
+type OAuthUserPublic = Record<string, any>;
+
+interface OAuthVerificationRequiredResult {
+  user: OAuthUserPublic;
+  requiresVerification: true;
+  message: string;
+  isNewUser: boolean;
+}
+
+interface OAuthAuthenticatedResult {
+  user: OAuthUserPublic;
+  accessToken: string;
+  refreshToken: string;
+  requiresVerification: false;
+  isNewUser: boolean;
+}
+
+type OAuthAuthResult = OAuthVerificationRequiredResult | OAuthAuthenticatedResult;
+
+const OAUTH_VERIFICATION_REQUIRED_MESSAGE =
+  'Votre compte Google est cree, mais vous devez verifier votre email avant de vous connecter. Un email de verification vient d\'etre envoye.';
+
+async function ensureOAuthEmailVerification(user: {
+  id: string;
+  email: string;
+  firstName: string;
+  emailVerified: boolean;
+}) {
+  if (user.emailVerified || isEmailVerificationBypassed()) {
+    return null;
+  }
+
+  const token = await createEmailVerificationToken(user.id);
+  const verificationCode = generateEmailVerificationCode(token);
+  sendVerificationEmail(user.email, user.firstName, token, verificationCode).catch(console.error);
+  return OAUTH_VERIFICATION_REQUIRED_MESSAGE;
+}
+
+async function createOAuthSessionResult(
+  user: any,
+  isNewUser: boolean
+): Promise<OAuthAuthResult> {
+  const { passwordHash, ...userWithoutPassword } = user;
+  const verificationMessage = await ensureOAuthEmailVerification(user);
+
+  if (verificationMessage) {
+    return {
+      user: userWithoutPassword,
+      requiresVerification: true,
+      message: verificationMessage,
+      isNewUser,
+    };
+  }
+
+  const tokens = generateTokens(user.id, user.email, user.role);
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await prisma.refreshToken.create({
+    data: {
+      userId: user.id,
+      token: tokens.refreshToken,
+      expiresAt,
+    },
+  });
+
+  return {
+    user: userWithoutPassword,
+    ...tokens,
+    requiresVerification: false,
+    isNewUser,
+  };
 }
 
 export async function findOrCreateOAuthUser(data: OAuthUserData) {
@@ -423,26 +711,7 @@ export async function findOrCreateOAuthUser(data: OAuthUserData) {
       },
     });
 
-    const tokens = generateTokens(
-      existingOAuth.user.id,
-      existingOAuth.user.email,
-      existingOAuth.user.role
-    );
-
-    // Save refresh token
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    
-    await prisma.refreshToken.create({
-      data: {
-        userId: existingOAuth.user.id,
-        token: tokens.refreshToken,
-        expiresAt,
-      },
-    });
-
-    const { passwordHash, ...userWithoutPassword } = existingOAuth.user;
-    return { user: userWithoutPassword, ...tokens, isNewUser: false };
+    return createOAuthSessionResult(existingOAuth.user, false);
   }
 
   // Check if user with this email already exists
@@ -469,7 +738,7 @@ export async function findOrCreateOAuthUser(data: OAuthUserData) {
         firstName: data.firstName,
         lastName: data.lastName,
         avatarUrl: data.avatarUrl,
-        emailVerified: true, // OAuth emails are pre-verified
+        emailVerified: false,
         role: UserRole.CLIENT,
         oauthAccounts: {
           create: {
@@ -483,20 +752,5 @@ export async function findOrCreateOAuthUser(data: OAuthUserData) {
     });
   }
 
-  const tokens = generateTokens(user.id, user.email, user.role);
-
-  // Save refresh token
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-  
-  await prisma.refreshToken.create({
-    data: {
-      userId: user.id,
-      token: tokens.refreshToken,
-      expiresAt,
-    },
-  });
-
-  const { passwordHash, ...userWithoutPassword } = user;
-  return { user: userWithoutPassword, ...tokens, isNewUser: !existingOAuth };
+  return createOAuthSessionResult(user, !existingOAuth);
 }

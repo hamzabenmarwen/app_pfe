@@ -8,7 +8,6 @@ import platRoutes from './routes/plat.routes';
 import allergenRoutes from './routes/allergen.routes';
 import uploadRoutes from './routes/upload.routes';
 import ingredientRoutes from './routes/ingredient.routes';
-import operationsRoutes from './routes/operations.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 dotenv.config();
@@ -40,7 +39,6 @@ app.use('/api/plats', platRoutes);
 app.use('/api/allergens', allergenRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/ingredients', ingredientRoutes);
-app.use('/api/ingredients', operationsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

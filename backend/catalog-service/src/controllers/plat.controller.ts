@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as platService from '../services/plat.service';
 import * as emailService from '../services/email.service';
+import * as stockReservationService from '../services/stock-reservation.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export async function getAllPlats(req: AuthenticatedRequest, res: Response) {
@@ -219,6 +220,31 @@ export async function notifyLowStock(req: Request, res: Response) {
         message: 'Aucun article en rupture de stock'
       });
     }
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function getPlatRecipe(req: Request, res: Response) {
+  try {
+    const recipe = await stockReservationService.getPlatRecipe(req.params.id);
+    res.json({
+      success: true,
+      data: recipe,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function setPlatRecipe(req: Request, res: Response) {
+  try {
+    const recipe = await stockReservationService.setPlatRecipe(req.params.id, req.body.lines);
+    res.json({
+      success: true,
+      data: recipe,
+      message: 'Recipe updated successfully',
+    });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }

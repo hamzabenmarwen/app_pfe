@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface User {
   id: string;
@@ -13,12 +13,11 @@ export interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   setUser: (user: User) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
+  setTokens: (accessToken: string) => void;
+  login: (user: User, accessToken: string) => void;
   logout: () => void;
 }
 
@@ -27,7 +26,6 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isAdmin: false,
 
@@ -37,18 +35,16 @@ export const useAuthStore = create<AuthState>()(
           isAdmin: user.role === 'ADMIN',
         }),
 
-      setTokens: (accessToken, refreshToken) =>
+      setTokens: (accessToken) =>
         set({
           accessToken,
-          refreshToken,
           isAuthenticated: true,
         }),
 
-      login: (user, accessToken, refreshToken) =>
+      login: (user, accessToken) =>
         set({
           user,
           accessToken,
-          refreshToken,
           isAuthenticated: true,
           isAdmin: user.role === 'ADMIN',
         }),
@@ -57,17 +53,16 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
           isAdmin: false,
         }),
     }),
     {
       name: 'assiette-gala-auth',
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         isAdmin: state.isAdmin,
       }),

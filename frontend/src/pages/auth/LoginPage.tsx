@@ -91,9 +91,28 @@ export default function LoginPage() {
       const result = await api.post('/auth/oauth/google', {
         credential: response.credential,
       });
-      
-      const { user, accessToken, refreshToken } = result.data.data;
-      login(user, accessToken, refreshToken);
+
+      const oauthResult = result.data?.data;
+      if (oauthResult?.requiresVerification) {
+        toast.success(
+          oauthResult?.message ||
+            'Compte Google créé. Vérifiez votre email pour activer la connexion.'
+        );
+        const oauthEmail = oauthResult?.user?.email;
+        if (oauthEmail) {
+          navigate(`/verify-email?email=${encodeURIComponent(oauthEmail)}`);
+        } else {
+          navigate('/verify-email');
+        }
+        return;
+      }
+
+      const { user, accessToken } = oauthResult;
+      if (!user || !accessToken) {
+        throw new Error('Réponse OAuth incomplète');
+      }
+
+      login(user, accessToken);
       toast.success('Connexion Google réussie !');
       
       if (user.role === 'ADMIN') {
@@ -112,8 +131,8 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await authService.login(data);
-      const { user, accessToken, refreshToken } = response.data;
-      login(user, accessToken, refreshToken);
+      const { user, accessToken } = response.data;
+      login(user, accessToken);
       toast.success('Connexion réussie !');
       
       if (user.role === 'ADMIN') {
@@ -122,7 +141,13 @@ export default function LoginPage() {
         navigate(from);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erreur de connexion');
+      const errorMessage = error.response?.data?.error || 'Erreur de connexion';
+      if (typeof errorMessage === 'string' && errorMessage.toLowerCase().includes('vérifier')) {
+        toast.error(errorMessage);
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

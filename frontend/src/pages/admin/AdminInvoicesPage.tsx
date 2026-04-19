@@ -9,6 +9,7 @@ import {
   PlusCircleIcon,
 } from '@heroicons/react/24/outline';
 import { orderService } from '@/services/order.service';
+import { eventService, type EventInvoice } from '@/services/event.service';
 import { paymentService, getPaymentMethodLabel } from '@/services/payment.service';
 import { Badge, Button, LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
@@ -17,7 +18,11 @@ type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'UNPAID' 
 
 type AdminInvoice = {
   id: string;
-  orderId: string;
+  source: 'ORDER' | 'EVENT';
+  orderId?: string;
+  eventId?: string;
+  paidAt?: string;
+  status?: string;
   invoiceNumber: string;
   amount: number;
   taxAmount: number;
@@ -34,6 +39,14 @@ type AdminInvoice = {
     method?: string;
     status: Exclude<PaymentStatus, 'UNPAID' | 'ALL'>;
     paidAt?: string;
+  } | null;
+  event?: {
+    id: string;
+    name?: string;
+  } | null;
+  quote?: {
+    id: string;
+    quoteNumber?: string;
   } | null;
 };
 
@@ -62,6 +75,66 @@ function formatAmount(value: number) {
   return `${value.toFixed(2)} DT`;
 }
 
+function normalizeOrderInvoice(invoice: any): AdminInvoice {
+  return {
+    id: invoice.id,
+    source: 'ORDER',
+    orderId: invoice.orderId,
+    invoiceNumber: invoice.invoiceNumber,
+    amount: Number(invoice.amount || 0),
+    taxAmount: Number(invoice.taxAmount || 0),
+    createdAt: invoice.createdAt,
+    paidAt: invoice.paidAt,
+    order: invoice.order || null,
+    payment: invoice.payment || null,
+  };
+}
+
+function normalizeEventInvoice(invoice: EventInvoice): AdminInvoice {
+  return {
+    id: invoice.id,
+    source: 'EVENT',
+    eventId: invoice.eventId,
+    invoiceNumber: invoice.invoiceNumber,
+    amount: Number(invoice.totalAmount || 0),
+    taxAmount: Number(invoice.tax || 0),
+    createdAt: invoice.issuedAt,
+    paidAt: invoice.paidAt,
+    status: invoice.status,
+    payment: invoice.paidAt
+      ? {
+          id: `event-payment-${invoice.id}`,
+          amount: Number(invoice.totalAmount || 0),
+          method: 'CASH',
+          status: 'COMPLETED',
+          paidAt: invoice.paidAt,
+        }
+      : null,
+    event: invoice.event
+      ? {
+          id: invoice.event.id,
+          name: invoice.event.name,
+        }
+      : null,
+    quote: invoice.quote
+      ? {
+          id: invoice.quote.id,
+          quoteNumber: invoice.quote.quoteNumber,
+        }
+      : null,
+  };
+}
+
+function getEffectivePaymentStatus(invoice: AdminInvoice): PaymentStatus {
+  if (invoice.source === 'EVENT') {
+    if (invoice.status === 'PAID' || invoice.paidAt) return 'COMPLETED';
+    if (invoice.status === 'CANCELLED') return 'FAILED';
+    return 'PENDING';
+  }
+
+  return invoice.payment?.status ?? 'UNPAID';
+}
+
 function getPaymentBadge(status: PaymentStatus) {
   const map: Record<PaymentStatus, { label: string; variant: 'default' | 'info' | 'success' | 'warning' | 'error' }> = {
     ALL: { label: 'Tous', variant: 'default' },
@@ -80,6 +153,7 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [eventInvoiceWarning, setEventInvoiceWarning] = useState<string | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus>(
     mode === 'finance' ? 'PENDING' : 'ALL',
   );
@@ -93,8 +167,35 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
 
   const loadInvoices = async () => {
     try {
-      const response = await orderService.getAllInvoices(1, 100);
-      setInvoices((response.data || []) as AdminInvoice[]);
+      setEventInvoiceWarning(null);
+
+      const [orderInvoicesRes, eventInvoicesRes] = await Promise.allSettled([
+        orderService.getAllInvoices(1, 100),
+        eventService.getAllEventInvoices(1, 100),
+      ]);
+
+      const orderInvoices = orderInvoicesRes.status === 'fulfilled'
+        ? ((orderInvoicesRes.value.data || []) as any[]).map(normalizeOrderInvoice)
+        : [];
+
+      const eventInvoices = eventInvoicesRes.status === 'fulfilled'
+        ? ((eventInvoicesRes.value.data || []) as EventInvoice[]).map(normalizeEventInvoice)
+        : [];
+
+      if (orderInvoicesRes.status === 'rejected') {
+        throw orderInvoicesRes.reason;
+      }
+
+      if (eventInvoicesRes.status === 'rejected') {
+        console.warn('Event invoices endpoint unavailable in this environment', eventInvoicesRes.reason);
+        setEventInvoiceWarning('Factures événements temporairement indisponibles. Les factures commandes restent affichées.');
+      }
+
+      const merged = [...orderInvoices, ...eventInvoices].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setInvoices(merged);
     } catch {
       toast.error('Erreur lors du chargement des factures');
     } finally {
@@ -108,7 +209,7 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      const paymentStatus: PaymentStatus = invoice.payment?.status ?? 'UNPAID';
+      const paymentStatus = getEffectivePaymentStatus(invoice);
 
       const matchesFilter =
         paymentFilter === 'ALL' ? true : paymentFilter === 'UNPAID' ? !invoice.payment : paymentStatus === paymentFilter;
@@ -117,9 +218,12 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
       const matchesSearch =
         q.length === 0 ||
         invoice.invoiceNumber.toLowerCase().includes(q) ||
-        invoice.orderId.toLowerCase().includes(q) ||
+        (invoice.orderId || '').toLowerCase().includes(q) ||
+        (invoice.eventId || '').toLowerCase().includes(q) ||
         (invoice.order?.orderNumber || '').toLowerCase().includes(q) ||
-        (invoice.order?.userId || '').toLowerCase().includes(q);
+        (invoice.order?.userId || '').toLowerCase().includes(q) ||
+        (invoice.event?.name || '').toLowerCase().includes(q) ||
+        (invoice.quote?.quoteNumber || '').toLowerCase().includes(q);
 
       return matchesFilter && matchesSearch;
     });
@@ -141,6 +245,11 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
   }, [invoices]);
 
   const handleDownloadInvoice = async (invoice: AdminInvoice) => {
+    if (invoice.source !== 'ORDER' || !invoice.orderId) {
+      toast.error('PDF indisponible pour cette facture evenement');
+      return;
+    }
+
     try {
       setIsSubmitting(invoice.id);
       const blob = await orderService.downloadInvoice(invoice.orderId);
@@ -159,6 +268,11 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
   };
 
   const handleCreateCashPayment = async (invoice: AdminInvoice) => {
+    if (invoice.source !== 'ORDER' || !invoice.orderId) {
+      toast.error('Paiement caisse uniquement pour les factures commandes');
+      return;
+    }
+
     try {
       setIsSubmitting(invoice.id);
       await paymentService.createCashPayment(invoice.orderId);
@@ -174,7 +288,15 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
   const handleMarkAsPaid = async (invoice: AdminInvoice) => {
     try {
       setIsSubmitting(invoice.id);
-      await paymentService.markAsPaid(invoice.orderId);
+
+      if (invoice.source === 'EVENT') {
+        await eventService.markEventInvoicePaid(invoice.id);
+      } else if (invoice.orderId) {
+        await paymentService.markAsPaid(invoice.orderId);
+      } else {
+        throw new Error('Order invoice is missing order id');
+      }
+
       toast.success('Paiement marque comme paye');
       await loadInvoices();
     } catch {
@@ -185,6 +307,11 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
   };
 
   const handleRefund = async (invoice: AdminInvoice) => {
+    if (invoice.source !== 'ORDER' || !invoice.orderId) {
+      toast.error('Remboursement uniquement pour les factures commandes');
+      return;
+    }
+
     try {
       setIsSubmitting(invoice.id);
       await paymentService.refundPayment(invoice.orderId);
@@ -213,6 +340,12 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
           <p className="text-gray-400 mt-1">{subtitle}</p>
         </div>
       </div>
+
+      {eventInvoiceWarning && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {eventInvoiceWarning}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -279,18 +412,30 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filteredInvoices.map((invoice) => {
-                  const paymentStatus: PaymentStatus = invoice.payment?.status ?? 'UNPAID';
+                  const paymentStatus = getEffectivePaymentStatus(invoice);
                   const rowBusy = isSubmitting === invoice.id;
 
                   return (
                     <tr key={invoice.id} className="hover:bg-gray-50/60">
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{invoice.invoiceNumber}</p>
+                        <p className="text-xs text-gray-500">
+                          {invoice.source === 'ORDER' ? 'Source: Commande' : 'Source: Evenement'}
+                        </p>
                         <p className="text-xs text-gray-400">ID: {invoice.id.slice(0, 8)}...</p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-sm text-gray-800">{invoice.order?.orderNumber || invoice.orderId.slice(0, 8)}</p>
-                        <p className="text-xs text-gray-400">Client: {invoice.order?.userId?.slice(0, 8) || '-'}</p>
+                        {invoice.source === 'ORDER' ? (
+                          <>
+                            <p className="text-sm text-gray-800">{invoice.order?.orderNumber || invoice.orderId?.slice(0, 8) || '-'}</p>
+                            <p className="text-xs text-gray-400">Client: {invoice.order?.userId?.slice(0, 8) || '-'}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-800">{invoice.event?.name || invoice.eventId?.slice(0, 8) || '-'}</p>
+                            <p className="text-xs text-gray-400">Devis: {invoice.quote?.quoteNumber || '-'}</p>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{formatDate(invoice.createdAt)}</td>
                       <td className="px-4 py-3">
@@ -301,7 +446,13 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
                           <div>{getPaymentBadge(paymentStatus)}</div>
                           <p className="text-xs text-gray-500 flex items-center gap-1">
                             <BanknotesIcon className="h-3.5 w-3.5" />
-                            {invoice.payment ? getPaymentMethodLabel(invoice.payment.method) : 'Non cree'}
+                            {invoice.source === 'EVENT'
+                              ? invoice.paidAt
+                                ? 'Validation admin'
+                                : 'En attente'
+                              : invoice.payment
+                                ? getPaymentMethodLabel(invoice.payment.method)
+                                : 'Non cree'}
                           </p>
                         </div>
                       </td>
@@ -328,7 +479,7 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
                             </Button>
                           )}
 
-                          {invoice.payment?.status === 'PENDING' && (
+                          {paymentStatus === 'PENDING' && (
                             <Button
                               size="sm"
                               onClick={() => handleMarkAsPaid(invoice)}
@@ -339,7 +490,7 @@ export default function AdminInvoicesPage({ mode = 'documents' }: AdminInvoicesP
                             </Button>
                           )}
 
-                          {invoice.payment?.status === 'COMPLETED' && (
+                          {invoice.source === 'ORDER' && invoice.payment?.status === 'COMPLETED' && (
                             <Button
                               variant="outline"
                               size="sm"

@@ -11,10 +11,10 @@ interface ScannedDocument {
   previewUrl: string;
   uploadedAt: string;
   extractedData?: {
-    total?: string;
+    documentType?: string;
     date?: string;
-    supplier?: string;
-    items?: number;
+    reference?: string;
+    pages?: number;
   };
 }
 
@@ -52,19 +52,22 @@ export default function AdminAIScannerPage() {
 
     setIsProcessing(true);
 
-    // Simulate AI processing delay
-    await new Promise((r) => setTimeout(r, 1500));
-
     const previewUrl = file.type.startsWith('image/')
       ? URL.createObjectURL(file)
       : '';
 
-    // Simulate extracted data (real OCR would use an AI service)
+    const normalizedName = file.name.toLowerCase();
     const simulatedData = {
-      total: `${(Math.random() * 500 + 50).toFixed(2)} DT`,
+      documentType: normalizedName.includes('facture')
+        ? 'Facture'
+        : normalizedName.includes('devis')
+          ? 'Devis'
+          : normalizedName.includes('bon')
+            ? 'Bon de commande'
+            : 'Document',
       date: new Date().toLocaleDateString('fr-FR'),
-      supplier: ['Metro', 'Carrefour Pro', 'STIAL', 'Médina Market'][Math.floor(Math.random() * 4)],
-      items: Math.floor(Math.random() * 12) + 1,
+      reference: file.name.replace(/\.[^/.]+$/, ''),
+      pages: file.type === 'application/pdf' ? 1 : undefined,
     };
 
     const doc: ScannedDocument = {
@@ -81,7 +84,7 @@ export default function AdminAIScannerPage() {
     setDocuments(updated);
     saveDocs(updated);
     setIsProcessing(false);
-    toast.success('Document analysé avec succès');
+    toast.success('Document importé avec succès');
   }, [documents]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -134,8 +137,8 @@ export default function AdminAIScannerPage() {
         {isProcessing ? (
           <div className="space-y-3">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary-200 border-t-primary-500" />
-            <p className="text-sm font-medium text-primary-600">Analyse en cours...</p>
-            <p className="text-xs text-gray-400">Extraction des données par IA</p>
+            <p className="text-sm font-medium text-primary-600">Traitement du document...</p>
+            <p className="text-xs text-gray-400">Extraction des métadonnées</p>
           </div>
         ) : (
           <>
@@ -208,9 +211,9 @@ export default function AdminAIScannerPage() {
 
                 {doc.extractedData && (
                   <div className="hidden md:flex items-center gap-6 text-xs text-gray-500 mx-4">
-                    <span><strong>Total:</strong> {doc.extractedData.total}</span>
-                    <span><strong>Fournisseur:</strong> {doc.extractedData.supplier}</span>
-                    <span><strong>Articles:</strong> {doc.extractedData.items}</span>
+                    <span><strong>Type:</strong> {doc.extractedData.documentType}</span>
+                    <span><strong>Réf:</strong> {doc.extractedData.reference}</span>
+                    <span><strong>Date:</strong> {doc.extractedData.date}</span>
                   </div>
                 )}
 
@@ -245,11 +248,11 @@ export default function AdminAIScannerPage() {
             )}
             {previewDoc.extractedData && (
               <div className="mt-4 p-4 bg-gray-50 rounded-xl space-y-2 text-sm">
-                <h4 className="font-semibold text-gray-900">Données extraites par IA</h4>
-                <p><strong>Total détecté :</strong> {previewDoc.extractedData.total}</p>
+                <h4 className="font-semibold text-gray-900">Métadonnées extraites</h4>
+                <p><strong>Type :</strong> {previewDoc.extractedData.documentType}</p>
                 <p><strong>Date :</strong> {previewDoc.extractedData.date}</p>
-                <p><strong>Fournisseur :</strong> {previewDoc.extractedData.supplier}</p>
-                <p><strong>Nombre d'articles :</strong> {previewDoc.extractedData.items}</p>
+                <p><strong>Référence :</strong> {previewDoc.extractedData.reference}</p>
+                <p><strong>Pages estimées :</strong> {previewDoc.extractedData.pages || 'N/A'}</p>
               </div>
             )}
           </div>

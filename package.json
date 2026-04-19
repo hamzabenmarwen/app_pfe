@@ -13,6 +13,9 @@
     "prisma:generate:all": "cd backend/auth-service && npx prisma generate && cd ../catalog-service && npx prisma generate && cd ../order-service && npx prisma generate && cd ../event-service && npx prisma generate",
     "prisma:push:all": "cd backend/auth-service && npx prisma db push && cd ../catalog-service && npx prisma db push && cd ../order-service && npx prisma db push && cd ../event-service && npx prisma db push",
     "seed:catalog": "cd backend/catalog-service && npm run seed",
+    "reset:professional": "powershell -ExecutionPolicy Bypass -File ./reset-professional-data.ps1 -Force",
+    "test:regression": "node --test tests/regression/api-regression.test.mjs",
+    "ops:health": "powershell -ExecutionPolicy Bypass -File ./ops-health-check.ps1",
     "perf:smoke": "k6 run tests/performance/k6-smoke.js",
     "perf:report": "k6 run --summary-export=tests/performance/summary.json tests/performance/k6-smoke.js"
   },

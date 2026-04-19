@@ -142,7 +142,11 @@ export async function initiateFlouciPayment(orderId: string, userId: string) {
   };
 }
 
-export async function verifyFlouciPayment(paymentId: string) {
+export async function verifyFlouciPayment(
+  paymentId: string,
+  requesterUserId: string,
+  requesterRole: string
+) {
   const response = await fetch(`${FLOUCI_API_URL}/verify_payment/${paymentId}`, {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -159,10 +163,25 @@ export async function verifyFlouciPayment(paymentId: string) {
 
   const payment = await prisma.payment.findFirst({
     where: { transactionRef: paymentId },
-    include: { invoice: true },
+    include: {
+      invoice: {
+        include: {
+          order: {
+            select: { userId: true },
+          },
+        },
+      },
+    },
   });
 
   if (!payment) {
+    throw new Error('Paiement introuvable');
+  }
+
+  const isAdmin = requesterRole === 'ADMIN';
+  const isOwner = payment.invoice.order.userId === requesterUserId;
+
+  if (!isAdmin && !isOwner) {
     throw new Error('Paiement introuvable');
   }
 

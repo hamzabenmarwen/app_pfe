@@ -6,6 +6,7 @@ import { eventService } from '@/services/event.service';
 import { catalogService, type Expense } from '@/services/catalog.service';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { useSiteStore } from '@/stores/site.store';
+import toast from 'react-hot-toast';
 
 function sanitize(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -40,9 +41,6 @@ export default function AdminAIReportPage() {
   const generateReport = async () => {
     if (!data) return;
     setIsGenerating(true);
-
-    // Simulate AI processing
-    await new Promise((r) => setTimeout(r, 2000));
 
     const now = new Date();
     const thisMonthOrders = data.orders.filter((o) => {
@@ -180,7 +178,7 @@ export default function AdminAIReportPage() {
   const handleCopy = () => {
     if (!report) return;
     navigator.clipboard.writeText(report).then(() => {
-      import('react-hot-toast').then((mod) => mod.default.success('Rapport copié !'));
+      toast.success('Rapport copié !');
     });
   };
 

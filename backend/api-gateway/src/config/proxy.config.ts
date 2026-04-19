@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { createProxyMiddleware, Options } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody, Options } from 'http-proxy-middleware';
 
 interface ServiceConfig {
   path: string;
@@ -54,6 +54,9 @@ export function setupProxies(app: Express): void {
         // Forward original IP
         proxyReq.setHeader('X-Forwarded-For', req.ip || '');
         proxyReq.setHeader('X-Real-IP', req.ip || '');
+
+        // Re-send parsed request body when express.json() runs before proxy.
+        fixRequestBody(proxyReq, req as any);
       },
     };
 

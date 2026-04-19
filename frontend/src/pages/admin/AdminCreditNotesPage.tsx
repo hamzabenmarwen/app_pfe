@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowPathIcon, PrinterIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { orderService, type Order } from '@/services/order.service';
 import { Badge, Button, LoadingSpinner } from '@/components/ui';

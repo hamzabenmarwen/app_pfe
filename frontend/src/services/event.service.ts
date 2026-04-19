@@ -113,6 +113,15 @@ export interface EventInvoice {
     id: string;
     quoteNumber: string;
   };
+  payment?: {
+    id: string;
+    amount: number;
+    method: 'CASH' | 'FLOUCI';
+    status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+    transactionRef?: string;
+    paymentUrl?: string;
+    paidAt?: string;
+  } | null;
 }
 
 function normalizeEventPayload(data: Partial<CreateEventData>) {
@@ -266,6 +275,33 @@ export const eventService = {
     const response = await api.get('/event-invoices/my-invoices', {
       params: { page, limit },
     });
+    return response.data;
+  },
+
+  async getAllEventInvoices(page = 1, limit = 50, status?: string, from?: string, to?: string) {
+    const response = await api.get('/event-invoices', {
+      params: { page, limit, status, from, to },
+    });
+    return response.data;
+  },
+
+  async markEventInvoicePaid(invoiceId: string) {
+    const response = await api.patch(`/event-invoices/${invoiceId}/mark-paid`);
+    return response.data;
+  },
+
+  async initiateEventInvoiceFlouciPayment(invoiceId: string) {
+    const response = await api.post(`/event-invoices/${invoiceId}/payments/flouci/initiate`);
+    return response.data;
+  },
+
+  async refreshEventInvoiceFlouciPayment(invoiceId: string) {
+    const response = await api.post(`/event-invoices/${invoiceId}/payments/flouci/refresh`);
+    return response.data;
+  },
+
+  async getEventInvoicePaymentStatus(invoiceId: string) {
+    const response = await api.get(`/event-invoices/${invoiceId}/payment-status`);
     return response.data;
   },
 

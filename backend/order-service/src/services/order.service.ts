@@ -6,12 +6,26 @@ const ORDER_MIN_LEAD_HOURS = Number(process.env.ORDER_MIN_LEAD_HOURS || 48);
 const ORDER_MIN_AMOUNT_DT = Number(process.env.ORDER_MIN_AMOUNT_DT || 30);
 const ORDER_DELIVERY_FEE_DT = Number(process.env.ORDER_DELIVERY_FEE_DT || 5);
 const ORDER_TAX_RATE = Number(process.env.ORDER_TAX_RATE || 0.19);
+const ORDER_MAX_ORDERS_PER_DAY = Number(process.env.ORDER_MAX_ORDERS_PER_DAY || 0);
+const ORDER_MAX_ORDERS_PER_SLOT = Number(process.env.ORDER_MAX_ORDERS_PER_SLOT || 0);
+const ORDER_ENFORCE_INGREDIENT_STOCK = (process.env.ORDER_ENFORCE_INGREDIENT_STOCK || 'true') === 'true';
+const CATALOG_INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || '';
 
 type CatalogPlatSnapshot = {
   id: string;
   name: string;
   price: number;
   isAvailable: boolean;
+};
+
+type CatalogStockReservationResponse = {
+  success: boolean;
+  data?: {
+    id: string;
+    reference: string;
+    status: 'RESERVED' | 'CONSUMED' | 'RELEASED';
+  };
+  error?: string;
 };
 
 // Generate unique order number using crypto for collision resistance
@@ -73,6 +87,57 @@ async function fetchPlatSnapshot(platId: string): Promise<CatalogPlatSnapshot> {
   };
 }
 
+async function callCatalogInternal<T>(path: string, init: RequestInit): Promise<T> {
+  const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || 'http://localhost:3002';
+
+  const headers = new Headers(init.headers || {});
+  headers.set('Content-Type', 'application/json');
+  if (CATALOG_INTERNAL_SERVICE_TOKEN) {
+    headers.set('x-internal-service-token', CATALOG_INTERNAL_SERVICE_TOKEN);
+  }
+
+  const response = await fetch(`${catalogServiceUrl}${path}`, {
+    ...init,
+    headers,
+  });
+
+  const payload = (await response.json().catch(() => null)) as { success?: boolean; error?: string; data?: T } | null;
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error || `Catalog stock operation failed (${response.status})`);
+  }
+
+  return payload.data as T;
+}
+
+async function reserveOrderStock(reference: string, items: Array<{ platId: string; quantity: number }>) {
+  return callCatalogInternal<CatalogStockReservationResponse['data']>('/api/ingredients/internal/reservations', {
+    method: 'POST',
+    body: JSON.stringify({
+      reference,
+      reason: 'ORDER_CREATED',
+      items,
+    }),
+  });
+}
+
+async function releaseOrderStockReservation(reference: string) {
+  return callCatalogInternal<CatalogStockReservationResponse['data']>(
+    `/api/ingredients/internal/reservations/${reference}/release`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+async function consumeOrderStockReservation(reference: string) {
+  return callCatalogInternal<CatalogStockReservationResponse['data']>(
+    `/api/ingredients/internal/reservations/${reference}/consume`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
 export interface DeliveryAddress {
   street: string;
   city: string;
@@ -95,6 +160,49 @@ export interface CreateOrderData {
   deliverySlot?: string;
   notes?: string;
   paymentMethod?: 'CASH' | 'FLOUCI';
+}
+
+async function assertDeliveryCapacity(deliveryDate: Date, deliverySlot?: string) {
+  const dayStart = new Date(deliveryDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(deliveryDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const where: Prisma.OrderWhereInput = {
+    status: {
+      in: [
+        OrderStatus.PENDING,
+        OrderStatus.CONFIRMED,
+        OrderStatus.PREPARING,
+        OrderStatus.READY,
+        OrderStatus.DELIVERING,
+      ],
+    },
+    deliveryDate: {
+      gte: dayStart,
+      lte: dayEnd,
+    },
+  };
+
+  if (ORDER_MAX_ORDERS_PER_DAY > 0) {
+    const currentDayOrders = await prisma.order.count({ where });
+    if (currentDayOrders >= ORDER_MAX_ORDERS_PER_DAY) {
+      throw new Error('Delivery capacity reached for this date. Please choose another date.');
+    }
+  }
+
+  if (ORDER_MAX_ORDERS_PER_SLOT > 0 && deliverySlot) {
+    const currentSlotOrders = await prisma.order.count({
+      where: {
+        ...where,
+        deliverySlot,
+      },
+    });
+
+    if (currentSlotOrders >= ORDER_MAX_ORDERS_PER_SLOT) {
+      throw new Error('Delivery slot is full. Please choose another slot.');
+    }
+  }
 }
 
 export async function createOrder(userId: string, data: CreateOrderData) {
@@ -125,6 +233,8 @@ export async function createOrder(userId: string, data: CreateOrderData) {
   if (data.deliveryDate.getTime() < minimumDeliveryDate.getTime()) {
     throw new Error(`Orders require at least ${ORDER_MIN_LEAD_HOURS} hours lead time`);
   }
+
+  await assertDeliveryCapacity(data.deliveryDate, data.deliverySlot);
 
   const normalizedItems = data.items.map((item) => {
     const quantity = Number(item.quantity);
@@ -168,55 +278,91 @@ export async function createOrder(userId: string, data: CreateOrderData) {
   const tax = subtotal * ORDER_TAX_RATE;
   const totalAmount = subtotal + deliveryFee + tax;
 
-  const order = await prisma.order.create({
-    data: {
-      userId,
-      orderNumber: generateOrderNumber(),
-      subtotal: new Prisma.Decimal(subtotal),
-      deliveryFee: new Prisma.Decimal(deliveryFee),
-      tax: new Prisma.Decimal(tax),
-      totalAmount: new Prisma.Decimal(totalAmount),
-      deliveryAddress: normalizedDeliveryAddress as any,
-      deliveryDate: data.deliveryDate,
-      deliverySlot: data.deliverySlot,
-      notes: data.notes,
-      items: {
-        create: resolvedItems.map((item) => ({
-          platId: item.platId,
-          platName: item.platName,
-          quantity: item.quantity,
-          unitPrice: new Prisma.Decimal(item.unitPrice),
-          notes: item.notes,
-        })),
-      },
-      invoice: {
-        create: {
-          invoiceNumber: generateInvoiceNumber(),
-          amount: new Prisma.Decimal(totalAmount),
-          taxAmount: new Prisma.Decimal(tax),
-          ...(data.paymentMethod === 'CASH' ? {
-            payment: {
-              create: {
-                amount: new Prisma.Decimal(totalAmount),
-                method: PaymentMethod.CASH,
-                status: PaymentStatus.PENDING,
-              },
-            },
-          } : {}),
-        },
-      },
-    },
-    include: {
-      items: true,
-      invoice: {
-        include: {
-          payment: true,
-        },
-      },
-    },
-  });
+  const orderNumber = generateOrderNumber();
+  let stockReserved = false;
 
-  return transformOrder(order);
+  try {
+    await reserveOrderStock(
+      orderNumber,
+      normalizedItems.map((item) => ({
+        platId: item.platId,
+        quantity: item.quantity,
+      }))
+    );
+    stockReserved = true;
+  } catch (error: any) {
+    if (ORDER_ENFORCE_INGREDIENT_STOCK) {
+      throw new Error(`Unable to reserve ingredient stock: ${error.message}`);
+    }
+
+    console.warn(`[ORDER_STOCK_WARN] Reservation skipped for ${orderNumber}: ${error.message}`);
+  }
+
+  try {
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        orderNumber,
+        subtotal: new Prisma.Decimal(subtotal),
+        deliveryFee: new Prisma.Decimal(deliveryFee),
+        tax: new Prisma.Decimal(tax),
+        totalAmount: new Prisma.Decimal(totalAmount),
+        deliveryAddress: normalizedDeliveryAddress as any,
+        deliveryDate: data.deliveryDate,
+        deliverySlot: data.deliverySlot,
+        notes: data.notes,
+        items: {
+          create: resolvedItems.map((item) => ({
+            platId: item.platId,
+            platName: item.platName,
+            quantity: item.quantity,
+            unitPrice: new Prisma.Decimal(item.unitPrice),
+            notes: item.notes,
+          })),
+        },
+        invoice: {
+          create: {
+            invoiceNumber: generateInvoiceNumber(),
+            amount: new Prisma.Decimal(totalAmount),
+            taxAmount: new Prisma.Decimal(tax),
+            ...(data.paymentMethod === 'CASH'
+              ? {
+                  payment: {
+                    create: {
+                      amount: new Prisma.Decimal(totalAmount),
+                      method: PaymentMethod.CASH,
+                      status: PaymentStatus.PENDING,
+                    },
+                  },
+                }
+              : {}),
+          },
+        },
+      },
+      include: {
+        items: true,
+        invoice: {
+          include: {
+            payment: true,
+          },
+        },
+      },
+    });
+
+    return transformOrder(order);
+  } catch (error) {
+    if (stockReserved) {
+      try {
+        await releaseOrderStockReservation(orderNumber);
+      } catch (releaseError: any) {
+        console.error(
+          `[ORDER_STOCK_ERROR] Failed to release reservation ${orderNumber} after order create failure: ${releaseError.message}`
+        );
+      }
+    }
+
+    throw error;
+  }
 }
 
 export async function getOrderById(orderId: string, userId?: string) {
@@ -355,16 +501,78 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
     throw new Error(`Cannot transition from ${order.status} to ${status}`);
   }
 
-  const updated = await prisma.order.update({
-    where: { id: orderId },
-    data: { status },
-    include: {
-      items: true,
-      invoice: {
-        include: { payment: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const updatedOrder = await tx.order.update({
+      where: { id: orderId },
+      data: { status },
+      include: {
+        items: true,
+        invoice: {
+          include: { payment: true },
+        },
       },
-    },
+    });
+
+    if (status === OrderStatus.DELIVERED && updatedOrder.invoice) {
+      const payment = updatedOrder.invoice.payment;
+
+      if (!payment) {
+        await tx.payment.create({
+          data: {
+            invoiceId: updatedOrder.invoice.id,
+            amount: updatedOrder.invoice.amount,
+            method: PaymentMethod.CASH,
+            status: PaymentStatus.COMPLETED,
+            paidAt: new Date(),
+          },
+        });
+      } else if (payment.status !== PaymentStatus.COMPLETED && payment.status !== PaymentStatus.REFUNDED) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.COMPLETED,
+            paidAt: payment.paidAt || new Date(),
+          },
+        });
+      }
+    }
+
+    const refreshedOrder = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        invoice: {
+          include: { payment: true },
+        },
+      },
+    });
+
+    if (!refreshedOrder) {
+      throw new Error('Order not found after update');
+    }
+
+    return refreshedOrder;
   });
+
+  if (status === OrderStatus.DELIVERED) {
+    try {
+      await consumeOrderStockReservation(updated.orderNumber);
+    } catch (error: any) {
+      console.error(
+        `[ORDER_STOCK_ERROR] Failed to consume reservation ${updated.orderNumber} on delivery: ${error.message}`
+      );
+    }
+  }
+
+  if (status === OrderStatus.CANCELLED) {
+    try {
+      await releaseOrderStockReservation(updated.orderNumber);
+    } catch (error: any) {
+      console.error(
+        `[ORDER_STOCK_ERROR] Failed to release reservation ${updated.orderNumber} on cancellation: ${error.message}`
+      );
+    }
+  }
 
   return transformOrder(updated);
 }
@@ -394,6 +602,14 @@ export async function cancelOrder(orderId: string, userId?: string) {
     },
   });
 
+  try {
+    await releaseOrderStockReservation(order.orderNumber);
+  } catch (error: any) {
+    console.error(
+      `[ORDER_STOCK_ERROR] Failed to release reservation ${order.orderNumber} after cancelOrder: ${error.message}`
+    );
+  }
+
   return transformOrder(updated);
 }
 
@@ -414,6 +630,7 @@ export async function getOrderStats() {
     monthRevenue,
     topPlats,
     avgProcessingHoursResult,
+    upcomingOrders,
   ] = await Promise.all([
     prisma.order.count(),
     prisma.order.count({
@@ -476,6 +693,24 @@ export async function getOrderStats() {
         WHERE status = 'DELIVERED'
       `
     ),
+    prisma.order.findMany({
+      where: {
+        status: {
+          in: [
+            OrderStatus.PENDING,
+            OrderStatus.CONFIRMED,
+            OrderStatus.PREPARING,
+            OrderStatus.READY,
+            OrderStatus.DELIVERING,
+          ],
+        },
+        deliveryDate: { gte: today },
+      },
+      select: {
+        deliveryDate: true,
+        deliverySlot: true,
+      },
+    }),
   ]);
 
   const totalRevenueValue = Number(totalRevenue._sum.totalAmount || 0);
@@ -484,6 +719,31 @@ export async function getOrderStats() {
   const averageOrderValue = totalOrders > 0 ? totalRevenueValue / totalOrders : 0;
   const completionRate = totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0;
   const averageProcessingHours = Number(avgProcessingHoursResult?.[0]?.avgHours || 0);
+  const upcomingByDateSlot = upcomingOrders.reduce<Record<string, number>>((acc, order) => {
+    const dateKey = order.deliveryDate.toISOString().slice(0, 10);
+    const slotKey = order.deliverySlot || 'NO_SLOT';
+    const key = `${dateKey}|${slotKey}`;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const capacityUsage = Object.entries(upcomingByDateSlot)
+    .map(([key, count]) => {
+      const [date, slot] = key.split('|');
+      return {
+        date,
+        slot,
+        orders: count,
+        slotCapacity: ORDER_MAX_ORDERS_PER_SLOT > 0 ? ORDER_MAX_ORDERS_PER_SLOT : null,
+        dayCapacity: ORDER_MAX_ORDERS_PER_DAY > 0 ? ORDER_MAX_ORDERS_PER_DAY : null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.date === b.date) {
+        return (a.slot || '').localeCompare(b.slot || '');
+      }
+      return a.date.localeCompare(b.date);
+    });
 
   return {
     totalOrders,
@@ -497,6 +757,7 @@ export async function getOrderStats() {
     averageOrderValue: Number(averageOrderValue.toFixed(2)),
     completionRate: Number(completionRate.toFixed(2)),
     averageProcessingHours: Number(averageProcessingHours.toFixed(2)),
+    capacityUsage,
     topPlats: topPlats.map((item) => ({
       platId: item.platId,
       platName: item.platName,

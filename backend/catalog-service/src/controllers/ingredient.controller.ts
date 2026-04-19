@@ -1,7 +1,102 @@
 import { Request, Response } from 'express';
 import * as ingredientService from '../services/ingredient.service';
 import * as emailService from '../services/email.service';
+import * as stockReservationService from '../services/stock-reservation.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+
+function hasInternalAccess(req: Request): boolean {
+  const expectedToken = process.env.INTERNAL_SERVICE_TOKEN;
+  const receivedToken = req.header('x-internal-service-token') || req.header('X-Internal-Service-Token');
+
+  if (!expectedToken) {
+    return true;
+  }
+
+  return receivedToken === expectedToken;
+}
+
+export async function createStockReservationInternal(req: Request, res: Response) {
+  try {
+    if (!hasInternalAccess(req)) {
+      res.status(401).json({ success: false, error: 'Unauthorized internal request' });
+      return;
+    }
+
+    const reservation = await stockReservationService.reserveIngredientsForOrder(req.body);
+    res.status(201).json({
+      success: true,
+      data: reservation,
+      message: 'Stock reserved successfully',
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function getStockReservationInternal(req: Request, res: Response) {
+  try {
+    if (!hasInternalAccess(req)) {
+      res.status(401).json({ success: false, error: 'Unauthorized internal request' });
+      return;
+    }
+
+    const reservation = await stockReservationService.getStockReservation(req.params.reference);
+    if (!reservation) {
+      res.status(404).json({ success: false, error: 'Reservation not found' });
+      return;
+    }
+
+    res.json({ success: true, data: reservation });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function releaseStockReservationInternal(req: Request, res: Response) {
+  try {
+    if (!hasInternalAccess(req)) {
+      res.status(401).json({ success: false, error: 'Unauthorized internal request' });
+      return;
+    }
+
+    const reservation = await stockReservationService.releaseStockReservation(req.params.reference);
+    if (!reservation) {
+      res.status(404).json({ success: false, error: 'Reservation not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: reservation,
+      message: 'Stock reservation released',
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+export async function consumeStockReservationInternal(req: Request, res: Response) {
+  try {
+    if (!hasInternalAccess(req)) {
+      res.status(401).json({ success: false, error: 'Unauthorized internal request' });
+      return;
+    }
+
+    const reservation = await stockReservationService.consumeStockReservation(req.params.reference);
+    if (!reservation) {
+      res.status(404).json({ success: false, error: 'Reservation not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: reservation,
+      message: 'Stock reservation consumed',
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
 
 export async function getAllIngredients(req: Request, res: Response) {
   try {

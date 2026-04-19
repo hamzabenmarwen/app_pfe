@@ -4,6 +4,7 @@ import { LoadingSpinner, Badge, Button } from '@/components/ui';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface User {
   id: string;
@@ -20,6 +21,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [processingAction, setProcessingAction] = useState<{ userId: string; action: 'anonymize' | 'delete' } | null>(null);
+  const currentUser = useAuthStore((state) => state.user);
 
   useEffect(() => {
     loadUsers();
@@ -53,6 +56,52 @@ export default function AdminUsersPage() {
       loadUsers();
     } catch (error) {
       toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleAnonymizeUser = async (user: User) => {
+    if (currentUser?.id === user.id) {
+      toast.error('Vous ne pouvez pas modifier votre propre compte admin ici');
+      return;
+    }
+
+    const confirmed = window.confirm(`Anonymiser le compte ${user.firstName} ${user.lastName} ? Cette action est recommandée pour la conformité RGPD.`);
+    if (!confirmed) {
+      return;
+    }
+
+    setProcessingAction({ userId: user.id, action: 'anonymize' });
+    try {
+      await api.delete(`/users/${user.id}?mode=anonymize`);
+      toast.success('Compte anonymisé avec succès');
+      await loadUsers();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Erreur lors de l\'anonymisation du compte');
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleHardDeleteUser = async (user: User) => {
+    if (currentUser?.id === user.id) {
+      toast.error('Vous ne pouvez pas supprimer votre propre compte admin');
+      return;
+    }
+
+    const confirmed = window.confirm(`Supprimer définitivement ${user.firstName} ${user.lastName} ? Cette action est irréversible.`);
+    if (!confirmed) {
+      return;
+    }
+
+    setProcessingAction({ userId: user.id, action: 'delete' });
+    try {
+      await api.delete(`/users/${user.id}?mode=delete`);
+      toast.success('Compte supprimé définitivement');
+      setUsers((previous) => previous.filter((entry) => entry.id !== user.id));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Erreur lors de la suppression du compte');
+    } finally {
+      setProcessingAction(null);
     }
   };
 
@@ -192,6 +241,26 @@ export default function AdminUsersPage() {
                           onClick={() => handleToggleActive(user.id, user.isActive)}
                         >
                           {user.isActive ? 'Désactiver' : 'Activer'}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          isLoading={processingAction?.userId === user.id && processingAction.action === 'delete'}
+                          disabled={currentUser?.id === user.id}
+                          onClick={() => handleHardDeleteUser(user)}
+                          title={currentUser?.id === user.id ? 'Suppression de votre propre compte bloquée' : 'Supprimer le compte'}
+                        >
+                          Supprimer
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          isLoading={processingAction?.userId === user.id && processingAction.action === 'anonymize'}
+                          disabled={currentUser?.id === user.id}
+                          onClick={() => handleAnonymizeUser(user)}
+                          title={currentUser?.id === user.id ? 'Action non autorisée sur votre compte' : 'Anonymiser le compte'}
+                        >
+                          Anonymiser
                         </Button>
                       </div>
                     </td>

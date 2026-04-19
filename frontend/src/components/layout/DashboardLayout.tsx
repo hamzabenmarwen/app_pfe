@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,9 +16,10 @@ import {
   ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/auth.store';
+import { authService } from '@/services/auth.service';
 import { useSiteStore } from '@/stores/site.store';
-import { orderService } from '@/services/order.service';
-import { eventService } from '@/services/event.service';
+import { orderService, type Invoice } from '@/services/order.service';
+import { eventService, type EventInvoice } from '@/services/event.service';
 import ChatWidget from '@/components/chat/ChatWidget';
 
 const navigation = [
@@ -30,39 +31,148 @@ const navigation = [
   { name: 'Mon profil', href: '/dashboard/profile', icon: UserIcon },
 ];
 
+interface DashboardNotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  href: string;
+}
+
+const CLIENT_ORDER_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'en attente',
+  CONFIRMED: 'confirmee',
+  PREPARING: 'en preparation',
+  READY: 'prete',
+  DELIVERING: 'en livraison',
+  DELIVERED: 'livree',
+  CANCELLED: 'annulee',
+};
+
+const CLIENT_EVENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'en attente',
+  PENDING_QUOTE: 'en attente de devis',
+  QUOTE_SENT: 'devis envoye',
+  QUOTE_ACCEPTED: 'devis accepte',
+  CONFIRMED: 'confirme',
+  IN_PROGRESS: 'en cours',
+  COMPLETED: 'termine',
+  CANCELLED: 'annule',
+};
+
+const CLIENT_INVOICE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'brouillon',
+  SENT: 'emise',
+  OVERDUE: 'en retard',
+  FAILED: 'echec paiement',
+  PAID: 'payee',
+};
+
+function toClientStatusLabel(status: string | undefined, labels: Record<string, string>) {
+  if (!status) return 'mis a jour';
+  return labels[status] || status.toLowerCase();
+}
+
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeOrderCount, setActiveOrderCount] = useState(0);
+  const [activeEventCount, setActiveEventCount] = useState(0);
+  const [pendingInvoiceCount, setPendingInvoiceCount] = useState(0);
   const [clientNotificationCount, setClientNotificationCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationItems, setNotificationItems] = useState<DashboardNotificationItem[]>([]);
   const { user, logout } = useAuthStore();
   const { config } = useSiteStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const notificationRef = useRef<HTMLDivElement | null>(null);
 
   // Keep header/sidebar badges updated with latest orders and events.
   useEffect(() => {
     Promise.all([
       orderService.getMyOrders(1, 50),
       eventService.getMyEvents(1, 50),
-    ]).then(([ordersRes, eventsRes]) => {
-      const orders = (ordersRes.data || []) as Array<{ status: string }>;
-      const events = (eventsRes.data || []) as Array<{ status: string }>;
+      orderService.getMyInvoices(1, 20),
+      eventService.getMyEventInvoices(1, 20),
+    ]).then(([ordersRes, eventsRes, orderInvoicesRes, eventInvoicesRes]) => {
+      const orders = (ordersRes.data || []) as Array<{ id: string; orderNumber?: string; status: string }>;
+      const events = (eventsRes.data || []) as Array<{ id: string; name?: string; status: string }>;
+      const orderInvoices = (orderInvoicesRes.data || []) as Invoice[];
+      const eventInvoices = (eventInvoicesRes.data || []) as EventInvoice[];
 
       const active = orders.filter((o) =>
         ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING'].includes(o.status)
       ).length;
 
-      const orderAlerts = orders.filter((o) => ['READY', 'DELIVERING'].includes(o.status)).length;
-      const eventAlerts = events.filter((e) => ['QUOTE_SENT', 'CONFIRMED', 'IN_PROGRESS'].includes(e.status)).length;
+      const orderAlertStatuses = ['READY', 'DELIVERING'];
+      const eventAlertStatuses = ['QUOTE_SENT', 'CONFIRMED', 'IN_PROGRESS'];
+      const invoiceAlertStatuses = ['SENT', 'OVERDUE', 'FAILED', 'DRAFT'];
+
+      const orderAlerts = orders.filter((o) => orderAlertStatuses.includes(o.status));
+      const eventAlerts = events.filter((e) => eventAlertStatuses.includes(e.status));
+      const invoiceAlerts = orderInvoices.filter((invoice) => invoiceAlertStatuses.includes(invoice.status));
+      const eventInvoiceAlerts = eventInvoices.filter((invoice) => invoiceAlertStatuses.includes(invoice.status));
+      const activeEvents = events.filter((e) => ['PENDING', 'PENDING_QUOTE', 'QUOTE_SENT', 'CONFIRMED', 'IN_PROGRESS'].includes(e.status));
+      const pendingInvoices = [...orderInvoices, ...eventInvoices].filter((invoice) => ['SENT', 'OVERDUE', 'FAILED'].includes(invoice.status));
+
+      const items: DashboardNotificationItem[] = [
+        ...orderAlerts.slice(0, 4).map((order, idx) => ({
+          id: `order-${idx}`,
+          title: 'Mise a jour commande',
+          message: `Commande ${order.orderNumber || `#${order.id.slice(-6)}`} ${toClientStatusLabel(order.status, CLIENT_ORDER_STATUS_LABELS)}.`,
+          href: '/dashboard/orders',
+        })),
+        ...eventAlerts.slice(0, 3).map((event, idx) => ({
+          id: `event-${idx}`,
+          title: 'Mise a jour evenement',
+          message: `${event.name || 'Evenement'} est ${toClientStatusLabel(event.status, CLIENT_EVENT_STATUS_LABELS)}.`,
+          href: '/dashboard/events',
+        })),
+        ...invoiceAlerts.slice(0, 4).map((invoice) => ({
+          id: `invoice-${invoice.id}`,
+          title: 'Notification facture',
+          message: `Facture ${invoice.invoiceNumber} ${toClientStatusLabel(invoice.status, CLIENT_INVOICE_STATUS_LABELS)}.`,
+          href: '/dashboard/invoices',
+        })),
+        ...eventInvoiceAlerts.slice(0, 3).map((invoice) => ({
+          id: `event-invoice-${invoice.id}`,
+          title: 'Facture evenement',
+          message: `Facture ${invoice.invoiceNumber} ${toClientStatusLabel(invoice.status, CLIENT_INVOICE_STATUS_LABELS)}.`,
+          href: '/dashboard/invoices',
+        })),
+      ].slice(0, 10);
 
       setActiveOrderCount(active);
-      setClientNotificationCount(orderAlerts + eventAlerts);
+      setActiveEventCount(activeEvents.length);
+      setPendingInvoiceCount(pendingInvoices.length);
+      setClientNotificationCount(items.length);
+      setNotificationItems(items);
     }).catch(() => {/* silent */});
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setNotificationsOpen(false);
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Silent fallback: local logout should still happen.
+    } finally {
+      logout();
+      navigate('/');
+    }
   };
 
   const getPageTitle = () => {
@@ -172,7 +282,7 @@ export default function DashboardLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.06),_transparent_42%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.08),_transparent_36%),#f8fafc]">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -208,7 +318,7 @@ export default function DashboardLayout() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200/80">
+        <div className="flex flex-col flex-grow bg-white/95 backdrop-blur-sm border-r border-gray-200/80 shadow-[8px_0_32px_-20px_rgba(2,6,23,0.25)]">
           <div className="flex h-16 items-center px-5 border-b border-gray-100">
             <NavLink to="/" className="flex items-center gap-2.5 group">
               <span className="text-2xl group-hover:scale-110 transition-transform">🍽️</span>
@@ -231,6 +341,7 @@ export default function DashboardLayout() {
               <Bars3Icon className="h-5 w-5 text-gray-600" />
             </button>
             <div>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-gray-400">Espace client</p>
               <h1 className="text-base font-semibold text-gray-900">{getPageTitle()}</h1>
             </div>
           </div>
@@ -249,18 +360,82 @@ export default function DashboardLayout() {
                 {activeOrderCount} en cours
               </Link>
             )}
-            <Link
-              to="/dashboard"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-              title={clientNotificationCount > 0 ? `${clientNotificationCount} notifications` : 'Notifications'}
-            >
-              <BellIcon className="h-4.5 w-4.5" />
-              {clientNotificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
-                  {clientNotificationCount > 9 ? '9+' : clientNotificationCount}
-                </span>
-              )}
-            </Link>
+            {activeEventCount > 0 && (
+              <Link
+                to="/dashboard/events"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+              >
+                {activeEventCount} evenement(s)
+              </Link>
+            )}
+            {pendingInvoiceCount > 0 && (
+              <Link
+                to="/dashboard/invoices"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+              >
+                {pendingInvoiceCount} facture(s)
+              </Link>
+            )}
+            <div className="relative" ref={notificationRef}>
+              <button
+                type="button"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                title={clientNotificationCount > 0 ? `${clientNotificationCount} notifications` : 'Notifications'}
+                onClick={() => setNotificationsOpen((prev) => !prev)}
+                aria-expanded={notificationsOpen}
+                aria-label="Ouvrir les notifications"
+              >
+                <BellIcon className="h-4.5 w-4.5" />
+                {clientNotificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold">
+                    {clientNotificationCount > 9 ? '9+' : clientNotificationCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {notificationsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                      <Link
+                        to="/dashboard/invoices"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        Voir factures
+                      </Link>
+                    </div>
+
+                    {notificationItems.length === 0 ? (
+                      <div className="px-4 py-6 text-center">
+                        <p className="text-sm text-gray-500">Aucune notification pour le moment.</p>
+                      </div>
+                    ) : (
+                      <div className="max-h-80 overflow-y-auto">
+                        {notificationItems.map((item) => (
+                          <Link
+                            key={item.id}
+                            to={item.href}
+                            onClick={() => setNotificationsOpen(false)}
+                            className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                          >
+                            <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                            <p className="mt-0.5 text-xs text-gray-500">{item.message}</p>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>

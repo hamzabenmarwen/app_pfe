@@ -94,8 +94,17 @@ export async function initiateFlouci(req: AuthenticatedRequest, res: Response) {
 
 export async function verifyFlouci(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'Authentication required' });
+      return;
+    }
+
     const { paymentId } = req.params;
-    const result = await flouciService.verifyFlouciPayment(paymentId);
+    const result = await flouciService.verifyFlouciPayment(
+      paymentId,
+      req.user.userId,
+      req.user.role
+    );
 
     res.json({
       success: true,

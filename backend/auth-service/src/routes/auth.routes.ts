@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { otpResendRateLimit, otpVerifyRateLimit } from '../middleware/verification-rate-limit.middleware';
 import { validateBody } from '../middleware/validation.middleware';
 import { z } from 'zod';
 
@@ -35,6 +36,15 @@ const googleAuthSchema = z.object({
   credential: z.string().min(1, 'Credential is required'),
 });
 
+const verifyEmailCodeSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  code: z.string().regex(/^\d{6}$/, 'Code must contain exactly 6 digits'),
+});
+
+const resendVerificationByEmailSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
 // Routes
 router.post('/register', validateBody(registerSchema), authController.register);
 router.post('/login', validateBody(loginSchema), authController.login);
@@ -51,7 +61,9 @@ router.post('/reset-password', validateBody(resetPasswordSchema), authController
 
 // Email Verification
 router.get('/verify-email', authController.verifyEmail);
+router.post('/verify-email-code', otpVerifyRateLimit, validateBody(verifyEmailCodeSchema), authController.verifyEmailCode);
 router.post('/resend-verification', authMiddleware, authController.resendVerificationEmail);
+router.post('/resend-verification-email', otpResendRateLimit, validateBody(resendVerificationByEmailSchema), authController.resendVerificationByEmail);
 
 // OAuth2
 router.post('/oauth/google', validateBody(googleAuthSchema), authController.googleAuth);

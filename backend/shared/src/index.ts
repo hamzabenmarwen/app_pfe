@@ -16,3 +16,13 @@ export * from './validation/user.validation';
 
 // Middleware
 export * from './middleware/auth.middleware';
+export * from './middleware/errorHandler.middleware';
+export * from './middleware/requestId.middleware';
+export * from './middleware/validateRequest.middleware';
+
+// Errors
+export * from './errors/AppError';
+
+// Base classes
+export * from './base/BaseController';
+export * from './base/BaseService';

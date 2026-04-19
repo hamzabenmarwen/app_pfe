@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { DocumentTextIcon, ArrowDownTrayIcon, EyeIcon, PrinterIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowDownTrayIcon, EyeIcon, PrinterIcon, CreditCardIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { orderService, type Invoice } from '@/services/order.service';
 import { eventService, type EventInvoice } from '@/services/event.service';
 import { openPrintPreviewWindow, printInvoice } from '@/services/print.service';
@@ -24,6 +24,7 @@ interface DashboardInvoice {
   eventId?: string;
   eventName?: string;
   quoteNumber?: string;
+  eventPayment?: EventInvoice['payment'] | null;
 }
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -70,6 +71,7 @@ function normalizeEventInvoice(invoice: EventInvoice): DashboardInvoice {
     eventId: invoice.eventId,
     eventName: invoice.event?.name,
     quoteNumber: invoice.quote?.quoteNumber,
+    eventPayment: invoice.payment || null,
   };
 }
 
@@ -78,10 +80,46 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<DashboardInvoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     loadInvoices();
   }, []);
+
+  useEffect(() => {
+    const eventInvoiceId = searchParams.get('eventInvoiceId');
+    const eventPayment = searchParams.get('eventPayment');
+
+    if (!eventInvoiceId || !eventPayment) {
+      return;
+    }
+
+    const processFlouciCallback = async () => {
+      try {
+        const refresh = await eventService.refreshEventInvoiceFlouciPayment(eventInvoiceId);
+        const verified = Boolean(refresh?.data?.verified);
+
+        if (verified) {
+          toast.success('Paiement événement confirmé avec succès');
+        } else if (eventPayment === 'failed') {
+          toast.error('Le paiement a été annulé ou a échoué');
+        } else {
+          toast('Paiement en cours de vérification. Réessayez dans quelques secondes.');
+        }
+
+        await loadInvoices();
+      } catch {
+        toast.error('Impossible de vérifier le paiement événement');
+      } finally {
+        const next = new URLSearchParams(searchParams);
+        next.delete('eventInvoiceId');
+        next.delete('eventPayment');
+        setSearchParams(next);
+      }
+    };
+
+    void processFlouciCallback();
+  }, [searchParams, setSearchParams]);
 
   const fetchAllOrderInvoices = async (): Promise<Invoice[]> => {
     const pageSize = 50;
@@ -123,10 +161,21 @@ export default function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const [orderInvoicesRaw, eventInvoicesRaw] = await Promise.all([
+      const [orderInvoicesResult, eventInvoicesResult] = await Promise.allSettled([
         fetchAllOrderInvoices(),
         fetchAllEventInvoices(),
       ]);
+
+      const orderInvoicesRaw = orderInvoicesResult.status === 'fulfilled' ? orderInvoicesResult.value : [];
+      const eventInvoicesRaw = eventInvoicesResult.status === 'fulfilled' ? eventInvoicesResult.value : [];
+
+      if (orderInvoicesResult.status === 'rejected') {
+        console.warn('Failed to load order invoices', orderInvoicesResult.reason);
+      }
+
+      if (eventInvoicesResult.status === 'rejected') {
+        console.warn('Failed to load event invoices', eventInvoicesResult.reason);
+      }
 
       const orderInvoices = orderInvoicesRaw.map(normalizeOrderInvoice);
       const eventInvoices = eventInvoicesRaw.map(normalizeEventInvoice);
@@ -256,6 +305,48 @@ export default function InvoicesPage() {
     }
   };
 
+  const canPayEventInvoice = (invoice: DashboardInvoice) => {
+    if (invoice.source !== 'EVENT') return false;
+    if (invoice.status === 'PAID' || invoice.status === 'COMPLETED' || invoice.status === 'CANCELLED') return false;
+    return true;
+  };
+
+  const handleInitiateEventPayment = async (invoice: DashboardInvoice) => {
+    if (invoice.source !== 'EVENT') return;
+
+    try {
+      const result = await eventService.initiateEventInvoiceFlouciPayment(invoice.id);
+      const paymentUrl = result?.data?.paymentUrl;
+
+      if (!paymentUrl) {
+        throw new Error('Payment URL missing');
+      }
+
+      window.location.href = paymentUrl;
+    } catch {
+      toast.error('Impossible d\'initialiser le paiement pour cette facture');
+    }
+  };
+
+  const handleRefreshEventPayment = async (invoice: DashboardInvoice) => {
+    if (invoice.source !== 'EVENT') return;
+
+    try {
+      const result = await eventService.refreshEventInvoiceFlouciPayment(invoice.id);
+      const verified = Boolean(result?.data?.verified);
+
+      if (verified) {
+        toast.success('Paiement confirmé');
+      } else {
+        toast('Paiement toujours en attente de confirmation');
+      }
+
+      await loadInvoices();
+    } catch {
+      toast.error('Impossible de rafraîchir le statut de paiement');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -357,6 +448,18 @@ export default function InvoicesPage() {
                       PDF
                     </Button>
                   )}
+                  {invoice.source === 'EVENT' && canPayEventInvoice(invoice) && (
+                    <Button variant="outline" size="sm" className="flex-1 !rounded-xl" onClick={() => handleInitiateEventPayment(invoice)}>
+                      <CreditCardIcon className="h-4 w-4 mr-1" />
+                      Payer
+                    </Button>
+                  )}
+                  {invoice.source === 'EVENT' && (
+                    <Button variant="outline" size="sm" className="flex-1 !rounded-xl" onClick={() => handleRefreshEventPayment(invoice)}>
+                      <ArrowPathIcon className="h-4 w-4 mr-1" />
+                      Vérifier
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -432,6 +535,18 @@ export default function InvoicesPage() {
                           }}>
                             <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
                             PDF
+                          </Button>
+                        )}
+                        {invoice.source === 'EVENT' && canPayEventInvoice(invoice) && (
+                          <Button variant="outline" size="sm" className="!rounded-xl" onClick={() => handleInitiateEventPayment(invoice)}>
+                            <CreditCardIcon className="h-4 w-4 mr-1" />
+                            Payer
+                          </Button>
+                        )}
+                        {invoice.source === 'EVENT' && (
+                          <Button variant="outline" size="sm" className="!rounded-xl" onClick={() => handleRefreshEventPayment(invoice)}>
+                            <ArrowPathIcon className="h-4 w-4 mr-1" />
+                            Vérifier
                           </Button>
                         )}
                       </div>

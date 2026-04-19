@@ -40,9 +40,24 @@ model Plat {
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
   allergens         PlatAllergen[]
+  recipeItems       PlatIngredient[]
   category          Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@map("plats")
+}
+
+model PlatIngredient {
+  platId           String   @map("plat_id")
+  ingredientId     String   @map("ingredient_id")
+  quantityPerPlat  Decimal  @map("quantity_per_plat") @db.Decimal(10, 3)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  plat             Plat     @relation(fields: [platId], references: [id], onDelete: Cascade)
+  ingredient       Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([platId, ingredientId])
+  @@index([ingredientId])
+  @@map("plat_ingredients")
 }
 
 model IngredientCategory {
@@ -78,8 +93,41 @@ model Ingredient {
   category          IngredientCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   supplierRef       Supplier?          @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   purchaseOrderLines PurchaseOrderLine[]
+  recipeUsages      PlatIngredient[]
+  reservationLines  IngredientReservationLine[]
 
   @@map("ingredients")
+}
+
+enum IngredientReservationStatus {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+model IngredientReservation {
+  id        String                     @id @default(uuid())
+  reference String                     @unique
+  reason    String?
+  status    IngredientReservationStatus @default(RESERVED)
+  createdAt DateTime                   @default(now()) @map("created_at")
+  updatedAt DateTime                   @updatedAt @map("updated_at")
+  lines     IngredientReservationLine[]
+
+  @@index([status])
+  @@map("ingredient_reservations")
+}
+
+model IngredientReservationLine {
+  reservationId String                @map("reservation_id")
+  ingredientId  String                @map("ingredient_id")
+  quantity      Decimal               @db.Decimal(12, 3)
+  reservation   IngredientReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  ingredient    Ingredient            @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([reservationId, ingredientId])
+  @@index([ingredientId])
+  @@map("ingredient_reservation_lines")
 }
 
 model Supplier {

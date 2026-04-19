@@ -62,7 +62,6 @@ import {
   AdminCalendarPage,
   AdminStockPage,
   AdminEventDetailsPage,
-  AdminModulePlaceholderPage,
   AdminStockMovementsPage,
   AdminStockTakePage,
   AdminSuppliersPage,
@@ -214,22 +213,31 @@ function App() {
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
+        gutter={8}
+        containerStyle={{
+          top: 16,
+          right: 16,
+        }}
         toastOptions={{
-          duration: 4000,
+          duration: 2200,
+          removeDelay: 120,
           style: {
             borderRadius: '12px',
             background: '#ffffff',
             color: '#374151',
             border: '1px solid #e5e7eb',
             boxShadow: '0 4px 24px -8px rgba(0, 0, 0, 0.08)',
+            maxWidth: '380px',
           },
           success: {
+            duration: 1800,
             iconTheme: {
               primary: '#10b981',
               secondary: '#ffffff',
             },
           },
           error: {
+            duration: 2500,
             iconTheme: {
               primary: '#ef4444',
               secondary: '#ffffff',

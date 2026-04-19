@@ -30,8 +30,8 @@ export default function RegisterPage() {
     try {
       const { confirmPassword, ...registerData } = data;
       await authService.register(registerData);
-      toast.success(`Inscription réussie ! Veuillez vérifier votre email avant de pouvoir vous connecter.`);
-      navigate('/login');
+      toast.success(`Inscription réussie ! Entrez le code reçu par email pour vérifier votre compte.`);
+      navigate(`/verify-email?email=${encodeURIComponent(registerData.email)}`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors de l\'inscription');
     } finally {
