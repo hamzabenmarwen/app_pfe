@@ -1,0 +1,75 @@
+flowchart TB
+    subgraph client["Navigateur Client"]
+        FE["Frontend React / Vite<br/>Port 5174"]
+    end
+
+    subgraph gateway["Passerelle API"]
+        GW["API Gateway Express.js<br/>Port 3000<br/>Rate Limiter + CSP"]
+    end
+
+    subgraph services["Microservices Node.js / TypeScript"]
+        AUTH["Auth Service<br/>Port 3001<br/>JWT + bcrypt"]
+        CATALOG["Catalog Service<br/>Port 3002<br/>Prisma + Cloudinary"]
+        ORDER["Order Service<br/>Port 3003<br/>PDFKit"]
+        EVENT["Event Service<br/>Port 3004<br/>Devis + Flouci"]
+    end
+
+    subgraph ai["Service IA Python / FastAPI"]
+        AI["AI Service<br/>Port 8000<br/>Gemini 2.5 Flash"]
+        FAISS_IDX["FAISS Index<br/>faiss_db/"]
+        EMBED["Embeddings<br/>all-MiniLM-L6-v2"]
+        AI --> FAISS_IDX
+        AI --> EMBED
+    end
+
+    subgraph shared["Package Partagé"]
+        SHARED["@traiteurpro/shared<br/>Numéros facture/commande<br/>Middlewares auth<br/>Gestionnaires erreurs"]
+    end
+
+    subgraph data["Bases de Données"]
+        DB1[("PostgreSQL<br/>Auth DB")]
+        DB2[("PostgreSQL<br/>Catalog DB")]
+        DB3[("PostgreSQL<br/>Order DB")]
+        DB4[("PostgreSQL<br/>Event DB")]
+    end
+
+    subgraph external["Services Externes"]
+        CLOUD["Cloudinary<br/>Stockage images"]
+        GEMINI["Google Gemini API<br/>LLM"]
+        FLOUCI["Flouci API<br/>Paiement"]
+        SMTP["Serveur SMTP<br/>Emails"]
+    end
+
+    FE -- "HTTP REST" --> GW
+    GW -->|/api/auth/*| AUTH
+    GW -->|/api/plats/*| CATALOG
+    GW -->|/api/orders/*| ORDER
+    GW -->|/api/events/*| EVENT
+    GW -->|/api/chat/*| AI
+
+    AUTH --> DB1
+    CATALOG --> DB2
+    ORDER --> DB3
+    EVENT --> DB4
+    AI --> DB2
+    AI --> DB3
+
+    CATALOG --> CLOUD
+    AI --> GEMINI
+    EVENT --> FLOUCI
+    AUTH --> SMTP
+
+    AUTH -.->|import| SHARED
+    ORDER -.->|import| SHARED
+    EVENT -.->|import| SHARED
+    CATALOG -.->|import| SHARED
+
+    ORDER -.->|INTERNAL_SERVICE_TOKEN| CATALOG
+
+    style client fill:#e3f2fd,stroke:#1565c0
+    style gateway fill:#fff3e0,stroke:#ef6c00
+    style services fill:#e8f5e9,stroke:#2e7d32
+    style ai fill:#fce4ec,stroke:#c62828
+    style shared fill:#f3e5f5,stroke:#7b1fa2
+    style data fill:#efebe9,stroke:#4e342e
+    style external fill:#e0f7fa,stroke:#00695c

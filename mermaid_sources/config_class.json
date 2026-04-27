@@ -9,7 +9,8 @@
     "tertiaryColor": "#dce6f5",
     "classText": "#000000",
     "relationColor": "#333333",
-    "relationLabelColor": "#000000"
+    "relationLabelColor": "#000000",
+    "background": "#ffffff"
   },
   "class": {
     "useMaxWidth": false

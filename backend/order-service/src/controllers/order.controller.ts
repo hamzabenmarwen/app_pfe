@@ -160,6 +160,12 @@ export async function cancelOrder(req: AuthenticatedRequest, res: Response) {
 
 export async function getOrderStats(req: AuthenticatedRequest, res: Response) {
   try {
+    // Double-check admin role for defense in depth (middleware should already enforce this)
+    if (req.user?.role !== 'ADMIN') {
+      res.status(403).json({ success: false, error: 'Admin access required' });
+      return;
+    }
+
     const stats = await orderService.getOrderStats();
 
     res.json({
@@ -169,4 +175,16 @@ export async function getOrderStats(req: AuthenticatedRequest, res: Response) {
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }
+}
+
+export async function getOrderConfig(_req: AuthenticatedRequest, res: Response) {
+  res.json({
+    success: true,
+    data: {
+      minLeadHours: Number(process.env.ORDER_MIN_LEAD_HOURS || 48),
+      minAmount: Number(process.env.ORDER_MIN_AMOUNT_DT || 30),
+      deliveryFee: Number(process.env.ORDER_DELIVERY_FEE_DT || 5),
+      taxRate: Number(process.env.ORDER_TAX_RATE || 0.19),
+    },
+  });
 }

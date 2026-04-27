@@ -1,58 +1,83 @@
 classDiagram
-    class Event {
-        - id: String
-        - userId: String
-        - type: String
-        - title: String
-        - date: DateTime
-        - guestCount: Int
-        - budget: Decimal
-        - status: EventStatus
-        - description: String
-        - address: String
-        - createdAt: DateTime
-        - updatedAt: DateTime
+    direction TB
+
+    class DashboardController {
+        <<Controller>>
+        +getOverview() KPIData
+        +getRevenueChart(period) ChartData
+        +getOrdersByStatus() ChartData
+        +getTopPlats(limit) Plat[]
     }
 
-    class Quote {
-        - id: String
-        - eventId: String
-        - totalPrice: Decimal
-        - status: QuoteStatus
-        - items: Json
-        - message: String
-        - validUntil: DateTime
-        - createdAt: DateTime
+    class FinanceService {
+        <<Service>>
+        +getTransactions(filters) Transaction[]
+        +createExpense(data) Expense
+        +getBalance(period) BalanceReport
+        +getCashFlow(period) CashFlowData
     }
 
-    class EventTemplate {
-        - id: String
-        - name: String
-        - description: String
-        - menuSuggestions: Json
-        - defaultGuestCount: Int
-        - createdAt: DateTime
+    class DocumentService {
+        <<Service>>
+        +generateInvoicePDF(orderId) Blob
+        +generatePurchaseOrderPDF(poId) Blob
+        +generateCreditNote(invoiceId) Blob
     }
 
-    class EventStatus {
-        <<enumeration>>
-        PENDING
-        QUOTED
-        CONFIRMED
-        IN_PROGRESS
-        COMPLETED
-        CANCELLED
+    class Expense {
+        -id : String
+        -title : String
+        -category : String
+        -amount : Decimal
+        -expenseDate : DateTime
+        -supplierName : String
+        -paymentMethod : String
+        -status : ExpenseStatus
+        +approve() void
+        +reject() void
+        +pay() void
     }
 
-    class QuoteStatus {
+    class ExpenseStatus {
         <<enumeration>>
         DRAFT
-        SENT
-        ACCEPTED
+        APPROVED
+        PAID
         REJECTED
-        EXPIRED
     }
 
-    Event "1" --> "*" Quote : Recevoir
-    Event --> EventStatus
-    Quote --> QuoteStatus
+    class EventInvoice {
+        -id : String
+        -invoiceNumber : String
+        -totalAmount : Decimal
+        -status : EventInvoiceStatus
+        -dueDate : DateTime
+        +send() void
+        +markPaid() void
+    }
+
+    class EventInvoicePayment {
+        -id : String
+        -amount : Decimal
+        -method : PaymentMethod
+        -status : PaymentStatus
+        +process() void
+    }
+
+    class AuditLog {
+        -id : String
+        -module : String
+        -action : String
+        -entityType : String
+        -entityId : String
+        -message : String
+        -actorId : String
+        -timestamp : DateTime
+    }
+
+    DashboardController ..> FinanceService : utilise
+    DashboardController ..> DocumentService : utilise
+    FinanceService --> Expense : gère
+    Expense --> ExpenseStatus : a
+    EventInvoice "1" *-- "0..1" EventInvoicePayment : reçoit
+    FinanceService ..> AuditLog : journalise

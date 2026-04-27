@@ -1,0 +1,171 @@
+% ============================================================
+% CHAPITRE 2 : ARCHITECTURE LOGICIELLE ET FRAMEWORK DE DÉVELOPPEMENT
+% ============================================================
+\chapter{Architecture logicielle et framework de développement}
+
+\section{Introduction}
+
+Avant de plonger dans la réalisation des sprints, il est indispensable de présenter les fondations techniques sur lesquelles repose l'ensemble de la solution. Ce chapitre détaille l'environnement matériel et logiciel mobilisé, l'architecture de déploiement retenue ainsi que l'organisation interne des microservices et de leurs interconnexions.
+
+% --------------------------------------------------
+\section{Environnement de développement}
+
+\subsection{Environnement matériel}
+
+\begin{table}[H]
+    \centering
+    \caption{Poste de travail utilisé}
+    \label{tab:env_materiel}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Composant} & \textbf{Spécification} \\
+        \hline
+        Machine & PC portable Lenovo \\
+        \hline
+        Processeur & Intel Core i7 13650HX \\
+        \hline
+        Mémoire vive & 16 Go RAM \\
+        \hline
+        Stockage & SSD 512 Go \\
+        \hline
+        Système d'exploitation & Windows 11  \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Environnement logiciel}
+
+Le Tableau~\ref{tab:env_logiciel} recense les outils mobilisés.
+
+\begin{table}[H]
+    \centering
+    \caption{Outils et technologies du projet}
+    \label{tab:env_logiciel}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.5cm}|p{3cm}|p{6cm}|}
+        \hline
+        \textbf{Outil / Technologie} & \textbf{Version} & \textbf{Rôle dans le projet} \\
+        \hline
+        Visual Studio Code & Dernière & Environnement de rédaction du code \\
+        \hline
+        Node.js & 20+ & Moteur d'exécution des microservices \\
+        \hline
+        TypeScript & 5.x & Couche de typage pour fiabiliser les échanges \\
+        \hline
+        React & 19 & Construction des écrans (client et admin) \\
+        \hline
+        Vite & 7.x & Compilation ultra-rapide du Frontend \\
+        \hline
+        Tailwind CSS & 4.x & Habillage graphique via classes utilitaires \\
+        \hline
+        Express.js & 4.x & Routage HTTP interne des API \\
+        \hline
+        Prisma ORM & 5.x & Pont de communication avec PostgreSQL \\
+        \hline
+        PostgreSQL & 16 & Stockage des menus, utilisateurs et commandes \\
+        \hline
+        Python & 3.14 & Scripts d'intelligence artificielle \\
+        \hline
+        FastAPI & Dernière & Interface rapide pour le chatbot \\
+        \hline
+        LangChain & 0.3.x & Orchestrateur des requêtes RAG \\
+        \hline
+        Google Gemini & 2.5 Flash & Modèle linguistique générant les réponses \\
+        \hline
+        Figma & En ligne & Maquettage graphique \\
+        \hline
+        Git & Dernière & Versionnement du code source \\
+        \hline
+        Postman & Dernière & Simulation et validation des requêtes API \\
+        \hline
+        Cloudinary & Cloud & Hébergement externe des photos de plats \\
+        \hline
+        FAISS (faiss-cpu) & 1.7+ & Index vectoriel pour le pipeline RAG \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Architecture de déploiement}
+
+Le diagramme de déploiement (figure~\ref{fig:deploiement}) détaille la distribution physique des composants logiciels de la plateforme Assiette Gala, en illustrant les nœuds d'exécution (poste client, serveur d'application, serveur de bases de données) et les services externes mobilisés (Cloudinary, Google Gemini, Flouci, SMTP).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{deploiement.png}
+    \caption{Diagramme de déploiement de la plateforme Assiette Gala}
+    \label{fig:deploiement}
+\end{figure}
+
+La figure~\ref{fig:architecture_globale} offre une vue d'ensemble de l'architecture logicielle de la plateforme, mettant en évidence les flux de communication entre le frontend, la passerelle API, les microservices métier, le service IA et les bases de données.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{architecture_globale.png}
+    \caption{Architecture globale de la plateforme Assiette Gala}
+    \label{fig:architecture_globale}
+\end{figure}
+
+% --------------------------------------------------
+\section{Architecture technique détaillée}
+
+\subsection{Découpage en microservices}
+
+La solution Assiette Gala se compose de sept briques logicielles autonomes, chacune spécialisée dans un domaine métier :
+
+\begin{table}[H]
+    \centering
+    \caption{Microservices de la plateforme Assiette Gala}
+    \label{tab:microservices}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.5cm}|c|p{6cm}|}
+        \hline
+        \textbf{Service} & \textbf{Port} & \textbf{Responsabilité} \\
+        \hline
+        API Gateway & 3000 & Point d'entrée unique, routage, authentification, WebSocket \\
+        \hline
+        Auth Service & 3001 & Inscription, connexion, JWT, Google OAuth, profils \\
+        \hline
+        Catalog Service & 3002 & Plats, catégories, allergènes, stock, fournisseurs \\
+        \hline
+        Order Service & 3003 & Commandes, paiements, factures PDF \\
+        \hline
+        Event Service & 3004 & Événements, devis, modèles de réception \\
+        \hline
+        AI Service & 8000 & Chatbot RAG, recommandations, prévisions, cuisine \\
+        \hline
+        Frontend (Vite) & 5174 & Interface React (client et administration) \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Passerelle d'entrée (API Gateway)}
+
+Pour éviter que le navigateur du client n'ait à connaître l'adresse de sept serveurs distincts, une \textbf{passerelle unique} (port 3000) joue le rôle de standard téléphonique : elle réceptionne chaque appel HTTP, vérifie le badge JWT du demandeur, puis achemine la requête vers la bonne cuisine logicielle.
+
+\subsection{Package partagé (\texttt{@traiteurpro/shared})}
+
+Afin d'éliminer la duplication de code entre les microservices, un package npm interne centralise les utilitaires communs :
+
+\begin{itemize}
+    \item \textbf{Middleware d'authentification :} vérification JWT, extraction du rôle utilisateur.
+    \item \textbf{Gestionnaire d'erreurs :} format de réponse uniforme pour toutes les API.
+    \item \textbf{Utilitaires de facturation :} génération des numéros de facture (format \texttt{INV-YYYYMM-<hex>}) et de commande (format \texttt{ORD-YYMMDD-<hex>}).
+    \item \textbf{Types partagés :} interfaces TypeScript pour les entités transversales (utilisateur, commande, plat).
+    \item \textbf{Validations :} schémas Zod pour la validation des entrées.
+\end{itemize}
+
+\subsection{Communication inter-services}
+
+Les microservices communiquent entre eux via des appels HTTP internes sécurisés par un \textbf{jeton de service interne} (\texttt{INTERNAL\_SERVICE\_TOKEN}). Ce jeton, partagé exclusivement entre les services backend, empêche tout accès non autorisé aux endpoints internes.
+
+Pour les notifications en temps réel, la passerelle API expose un serveur \textbf{WebSocket} (Socket.IO) qui diffuse les événements (nouvelle commande, mise à jour de statut) vers les clients connectés.
+
+% --------------------------------------------------
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\begin{samepage}
+Ce chapitre a dressé le panorama complet de l'outillage et de l'architecture technique de la plateforme Assiette Gala. Le découpage en microservices, la centralisation des utilitaires via le package partagé et la passerelle d'entrée unique garantissent une base solide pour les six sprints à venir. Le chapitre suivant inaugure le premier cycle de développement : la mise en place du système d'authentification.
+\end{samepage}
+

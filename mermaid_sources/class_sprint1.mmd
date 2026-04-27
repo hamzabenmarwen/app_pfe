@@ -1,45 +1,24 @@
 classDiagram
+    direction TB
+
     class User {
-        - id: String
-        - email: String
-        - firstName: String
-        - lastName: String
-        - phone: String
-        - role: UserRole
-        - passwordHash: String
-        - isActive: Boolean
-        - avatarUrl: String
-        - createdAt: DateTime
-        - updatedAt: DateTime
-    }
-
-    class Address {
-        - id: String
-        - userId: String
-        - label: String
-        - street: String
-        - city: String
-        - zipCode: String
-        - country: String
-        - isDefault: Boolean
-        - createdAt: DateTime
-    }
-
-    class RefreshToken {
-        - id: String
-        - userId: String
-        - token: String
-        - expiresAt: DateTime
-        - createdAt: DateTime
-    }
-
-    class ContactMessage {
-        - id: String
-        - name: String
-        - email: String
-        - subject: String
-        - message: String
-        - createdAt: DateTime
+        -id : String
+        -email : String
+        -passwordHash : String
+        -firstName : String
+        -lastName : String
+        -phone : String
+        -role : UserRole
+        -avatarUrl : String
+        -isActive : Boolean
+        -emailVerified : Boolean
+        +register(data) User
+        +authenticate(email, pwd) Token
+        +verifyEmail(token) void
+        +updateProfile(data) void
+        +changePassword(old, new) void
+        +resetPassword(token) void
+        +deactivate() void
     }
 
     class UserRole {
@@ -48,6 +27,25 @@ classDiagram
         CLIENT
     }
 
-    User "1" --> "*" Address : Posseder
-    User "1" --> "*" RefreshToken : Avoir
-    User --> UserRole : Avoir
+    class Address {
+        -id : String
+        -label : String
+        -street : String
+        -city : String
+        -zipCode : String
+        -country : String
+        -isDefault : Boolean
+        +setAsDefault() void
+    }
+
+    class OAuthAccount {
+        -id : String
+        -provider : String
+        -providerAccountId : String
+        +linkAccount() void
+        +unlinkAccount() void
+    }
+
+    User --> UserRole : a
+    User "1" *-- "*" Address : possède
+    User "1" *-- "*" OAuthAccount : lié à

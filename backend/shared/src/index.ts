@@ -9,6 +9,7 @@ export * from './types/api.types';
 export * from './utils/jwt.utils';
 export * from './utils/password.utils';
 export * from './utils/response.utils';
+export * from './utils/invoice.utils';
 
 // Validation
 export * from './validation/auth.validation';

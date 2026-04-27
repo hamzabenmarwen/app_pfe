@@ -1,4 +1,4 @@
-% ============================================================
+﻿% ============================================================
 % CHAPITRE 1 : ÉTUDE PRÉALABLE
 % ============================================================
 \chapter{Étude Préalable}
@@ -16,8 +16,8 @@ Le présent ouvrage concrétise l'aboutissement du cursus de \textbf{Mastère Pr
 
 L'immersion terrain a débuté le \textbf{26 janvier 2026} et s'est achevée le \textbf{20 mai 2026} dans les cuisines et bureaux d'\textbf{Assiette Gala Sfaxienne}. Deux tuteurs ont piloté l'avancement :
 \begin{itemize}
-    \item \textbf{M. Omar Daoud} --- responsable industriel, gérant du traiteur --- qui a dicté les priorités métier.
-    \item \textbf{M. Mohammed Elleuch} --- encadrant universitaire --- qui a veillé à la rigueur scientifique du livrable.
+    \item \textbf{M. Omar Daoud} : responsable industriel, gérant du traiteur : qui a dicté les priorités métier.
+    \item \textbf{M. Mohammed Elleuch} : encadrant universitaire : qui a veillé à la rigueur scientifique du livrable.
 \end{itemize}
 
 \subsection{Objectifs du projet}
@@ -49,7 +49,7 @@ Le modèle économique de l'établissement s'articule autour de trois branches c
 \begin{itemize}
     \item \textbf{Restauration quotidienne (B2C) :} du lundi au vendredi, ouverture à 11 h. La carte se divise entre une gamme permanente et un \og Menu du Jour \fg{} diffusé sur les réseaux sociaux chaque matin.
     \item \textbf{Offre corporative (B2B) :} formules déjeuner pour les salariés d'entreprises voisines, sous forme d'abonnements hebdomadaires ou de plateaux-repas ponctuels.
-    \item \textbf{Traiteur événementiel :} activité exclusive du week-end (samedi et dimanche) dédiée aux réceptions d'envergure --- mariages, fiançailles, séminaires professionnels --- avec conception de menus sur mesure.
+    \item \textbf{Traiteur événementiel :} activité exclusive du week-end (samedi et dimanche) dédiée aux réceptions d'envergure : mariages, fiançailles, séminaires professionnels : avec conception de menus sur mesure.
 \end{itemize}
 
 \subsection{Coordonnées}
@@ -153,11 +153,23 @@ Ce calcul permet au bot de retrouver le bon plat même si le client emploie des 
 
 \subsubsection{Jetons de session (JWT)}
 
-Pour qu'un habitué qui reprend son téléphone vingt minutes plus tard n'ait pas à ressaisir ses identifiants, le serveur lui décerne un \textbf{JSON Web Token (JWT)} --- une carte de fidélité numérique signée cryptographiquement. Notre dispositif fonctionne en tandem : un jeton éphémère (15 minutes) pour les requêtes courantes, et un jeton de renouvellement (7 jours) qui régénère silencieusement le premier.
+Pour qu'un habitué qui reprend son téléphone vingt minutes plus tard n'ait pas à ressaisir ses identifiants, le serveur lui décerne un \textbf{JSON Web Token (JWT)} : une carte de fidélité numérique signée cryptographiquement. Notre dispositif fonctionne en tandem : un jeton éphémère (15 minutes) pour les requêtes courantes, et un jeton de renouvellement (7 jours) qui régénère silencieusement le premier.
 
 \subsubsection{Hachage des mots de passe (bcrypt)}
 
 La base de données clients est un actif sensible. En cas d'intrusion, il est impératif que les mots de passe restent indéchiffrables. Le mécanisme \textbf{bcrypt} broie chaque mot de passe en y injectant un grain de sel aléatoire et un coût de calcul élevé, rendant toute tentative de reconstitution économiquement absurde pour un attaquant.
+
+\subsubsection{Durcissement de la passerelle API}
+
+La passerelle API constitue le point d'entrée unique de toutes les requêtes. Son durcissement repose sur plusieurs couches de protection :
+
+\begin{itemize}
+    \item \textbf{Limitation de débit (rate limiting) :} un compteur par utilisateur (identifié par jeton JWT ou adresse IP) plafonne le nombre de requêtes par fenêtre temporelle, empêchant les attaques par déni de service ou les abus de l'API.
+    \item \textbf{Politique de sécurité du contenu (CSP) :} les en-têtes Content-Security-Policy sont configurées de manière restrictive, interdisant l'exécution de scripts inline non signés et bloquant les sources non autorisées.
+    \item \textbf{CORS strict :} seules les origines explicitement listées dans la configuration sont acceptées, éliminant la possibilité de contournement par des domaines tiers.
+    \item \textbf{Jeton de service interne :} les communications entre microservices sont authentifiées par un jeton dédié (\texttt{INTERNAL\_SERVICE\_TOKEN}), empêchant tout accès non autorisé aux endpoints internes.
+    \item \textbf{Arrêt gracieux :} chaque service intercepte les signaux d'arrêt (SIGTERM, SIGINT) et termine proprement les requêtes en cours avant de fermer le serveur HTTP, garantissant l'intégrité des transactions.
+\end{itemize}
 
 % --------------------------------------------------
 \section{Analyse et critique de l'existant}
@@ -215,7 +227,7 @@ Le Tableau~\ref{tab:comparatif_existant} condense notre évaluation.
     \end{tabular}
 \end{table}
 
-\textbf{Verdict :} aucun acteur mondial ou local ne réunit les cinq exigences cardinales du traiteur sfaxien --- vitrine culinaire, devis événementiel, intelligence conversationnelle, recommandation personnalisée et compatibilité locale. C'est ce vide que notre projet ambitionne de combler.
+\textbf{Verdict :} aucun acteur mondial ou local ne réunit les cinq exigences cardinales du traiteur sfaxien : vitrine culinaire, devis événementiel, intelligence conversationnelle, recommandation personnalisée et compatibilité locale. C'est ce vide que notre projet ambitionne de combler.
 
 % --------------------------------------------------
 \section{Solution proposée}
@@ -234,7 +246,7 @@ Ce regroupement est schématisé dans la Figure~\ref{fig:solution_overview}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{solution_overview.png}
+    % \includegraphics[width=0.9\textwidth]{solution_overview.png}
     \caption{Briques fonctionnelles de la solution Assiette Gala}
     \label{fig:solution_overview}
 \end{figure}
@@ -285,16 +297,16 @@ Chaque sprint est rythmé par quatre rendez-vous obligatoires :
 
 \textbf{Répartition des rôles :}
 \begin{itemize}
-    \item \textbf{Product Owner --- M. Omar Daoud :} il porte la vision métier, valide ou refuse les interfaces, et fixe les priorités du backlog.
-    \item \textbf{Scrum Master --- M. Mohammed Elleuch :} il débloque les obstacles techniques et veille au respect du cadre universitaire.
-    \item \textbf{Développeur --- Ben Marouen Hamza :} il programme l'intégralité de la solution (backend, frontend, IA).
+    \item \textbf{Product Owner : M. Omar Daoud :} il porte la vision métier, valide ou refuse les interfaces, et fixe les priorités du backlog.
+    \item \textbf{Scrum Master : M. Mohammed Elleuch :} il débloque les obstacles techniques et veille au respect du cadre universitaire.
+    \item \textbf{Développeur : Ben Marouen Hamza :} il programme l'intégralité de la solution (backend, frontend, IA).
 \end{itemize}
 
-Le projet a été découpé en \textbf{cinq sprints} de trois semaines chacun, avec une période de stabilisation finale d'une dizaine de jours.
+Le projet a été découpé en \textbf{cinq sprints} de durée variable, conçus pour consolider rapidement les bases transactionnelles et dédier une période massive au développement de l'Intelligence Artificielle.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.85\textwidth]{scrum_process.png}
+    % \includegraphics[width=0.85\textwidth]{scrum_process.png}
     \caption{Déroulement des cycles Scrum dans notre projet}
     \label{fig:scrum_process}
 \end{figure}
@@ -340,7 +352,7 @@ Le \textit{Product Backlog} rassemble l'ensemble des \textit{user stories} formu
     \hline
     \endfoot
 
-    \multicolumn{4}{|c|}{\textbf{Sprint 1 --- Authentification et fondations}} \\
+    \multicolumn{4}{|c|}{\textbf{Sprint 1 : Gestion des utilisateurs}} \\
     \hline
     US-01 & En tant que visiteur, je souhaite créer un compte afin d'accéder aux fonctionnalités de la plateforme. & Haute & 3 jours \\
     \hline
@@ -355,58 +367,56 @@ Le \textit{Product Backlog} rassemble l'ensemble des \textit{user stories} formu
     US-06 & En tant qu'administrateur, je souhaite gérer les comptes utilisateurs afin de contrôler l'accès à la plateforme. & Haute & 3 jours \\
     \hline
 
-    \multicolumn{4}{|c|}{\textbf{Sprint 2 --- Catalogue des plats}} \\
+    \multicolumn{4}{|c|}{\textbf{Sprint 2 : Catalogue et Logistique}} \\
     \hline
-    US-07 & En tant que visiteur, je souhaite consulter le catalogue des plats afin de découvrir l'offre du traiteur. & Haute & 2 jours \\
+    US-07 & En tant que visiteur, je souhaite consulter et filtrer le catalogue des plats. & Haute & 3 jours \\
     \hline
-    US-08 & En tant que visiteur, je souhaite filtrer les plats par catégorie afin de trouver rapidement ce que je cherche. & Moyenne & 2 jours \\
+    US-08 & En tant qu'administrateur, je souhaite ajouter et modifier des plats et catégories. & Haute & 4 jours \\
     \hline
-    US-09 & En tant que visiteur, je souhaite rechercher un plat par nom afin d'accéder directement au plat souhaité. & Moyenne & 1 jour \\
+    US-09 & En tant qu'administrateur, je souhaite gérer les allergènes pour des raisons de santé publique. & Moyenne & 2 jours \\
     \hline
-    US-10 & En tant qu'administrateur, je souhaite ajouter un plat au catalogue afin d'enrichir l'offre proposée. & Haute & 3 jours \\
+    US-10 & En tant qu'administrateur, je souhaite gérer les stocks de matières premières. & Haute & 3 jours \\
     \hline
-    US-11 & En tant qu'administrateur, je souhaite modifier un plat existant afin de mettre à jour ses informations. & Haute & 2 jours \\
-    \hline
-    US-12 & En tant qu'administrateur, je souhaite gérer les catégories afin d'organiser le catalogue. & Haute & 2 jours \\
-    \hline
-    US-13 & En tant qu'administrateur, je souhaite gérer les allergènes afin d'informer les clients. & Moyenne & 1 jour \\
+    US-11 & En tant qu'administrateur, je souhaite gérer les fournisseurs. & Moyenne & 2 jours \\
     \hline
 
-    \multicolumn{4}{|c|}{\textbf{Sprint 3 --- Commandes et paiement}} \\
+    \multicolumn{4}{|c|}{\textbf{Sprint 3 : Événements et Commandes}} \\
     \hline
-    US-14 & En tant que client, je souhaite ajouter des plats à mon panier afin de préparer ma commande. & Haute & 2 jours \\
+    US-12 & En tant que client, je souhaite soumettre une demande d'événement sur mesure. & Haute & 4 jours \\
     \hline
-    US-15 & En tant que client, je souhaite passer une commande afin d'acheter les plats sélectionnés. & Haute & 5 jours \\
+    US-13 & En tant que client, je souhaite recevoir un devis pour mon événement. & Haute & 3 jours \\
     \hline
-    US-16 & En tant que client, je souhaite passer commande avec paiement en espèces afin de finaliser ma commande. & Haute & 3 jours \\
+    US-14 & En tant qu'administrateur, je souhaite gérer les modèles et les demandes d'événements. & Haute & 4 jours \\
     \hline
-    US-17 & En tant que client, je souhaite suivre l'état de ma commande afin de connaître son avancement. & Moyenne & 2 jours \\
+    US-15 & En tant que client, je souhaite ajouter des plats à mon panier et passer commande. & Haute & 4 jours \\
     \hline
-    US-18 & En tant que client, je souhaite télécharger la facture de ma commande afin de conserver un justificatif. & Moyenne & 3 jours \\
+    US-16 & En tant que client, je souhaite suivre l'état de ma commande et télécharger ma facture. & Haute & 3 jours \\
     \hline
-    US-19 & En tant qu'administrateur, je souhaite consulter et gérer les commandes afin de les traiter efficacement. & Haute & 3 jours \\
-    \hline
-
-    \multicolumn{4}{|c|}{\textbf{Sprint 4 --- Événements et devis}} \\
-    \hline
-    US-20 & En tant que client, je souhaite soumettre une demande d'événement afin de bénéficier des services traiteur. & Haute & 5 jours \\
-    \hline
-    US-21 & En tant que client, je souhaite sélectionner des plats pour mon événement afin de personnaliser le menu. & Haute & 3 jours \\
-    \hline
-    US-22 & En tant que client, je souhaite recevoir un devis pour mon événement afin d'évaluer le coût. & Haute & 3 jours \\
-    \hline
-    US-23 & En tant qu'administrateur, je souhaite gérer les demandes d'événements afin de planifier les prestations. & Haute & 3 jours \\
-    \hline
-    US-24 & En tant qu'administrateur, je souhaite gérer les modèles d'événements afin de proposer des formules prédéfinies. & Moyenne & 2 jours \\
+    US-17 & En tant qu'administrateur, je souhaite traiter les commandes clients. & Haute & 2 jours \\
     \hline
 
-    \multicolumn{4}{|c|}{\textbf{Sprint 5 --- Intelligence artificielle}} \\
+    \multicolumn{4}{|c|}{\textbf{Sprint 4 : Back-Office et Analytics}} \\
     \hline
-    US-25 & En tant que visiteur, je souhaite poser des questions au chatbot afin d'obtenir des informations sur les plats et services. & Haute & 8 jours \\
+    US-18 & En tant qu'administrateur, je souhaite visualiser des KPI et graphiques d'évolution. & Haute & 4 jours \\
     \hline
-    US-26 & En tant que client, je souhaite recevoir des recommandations personnalisées afin de découvrir des plats susceptibles de me plaire. & Moyenne & 5 jours \\
+    US-19 & En tant qu'administrateur, je souhaite analyser la répartition des commandes. & Moyenne & 2 jours \\
     \hline
-    US-27 & En tant qu'administrateur, je souhaite actualiser la base de connaissances du chatbot afin qu'il dispose d'informations à jour. & Moyenne & 2 jours \\
+    US-20 & En tant qu'administrateur, je souhaite suivre les flux financiers (caisse, dépenses). & Haute & 3 jours \\
+    \hline
+    US-21 & En tant qu'administrateur, je souhaite générer des documents comptables PDF. & Haute & 3 jours \\
+    \hline
+
+    \multicolumn{4}{|c|}{\textbf{Sprint 5 : Intelligence Artificielle}} \\
+    \hline
+    US-22 & En tant que visiteur, je souhaite interagir avec un chatbot RAG (NLP) pour des réponses expertes. & Haute & 5 jours \\
+    \hline
+    US-23 & En tant que client, je souhaite recevoir des recommandations de plats basées sur mes goûts. & Haute & 4 jours \\
+    \hline
+    US-24 & En tant qu'administrateur, je souhaite que le système prévoie les besoins en stocks (Forecasting). & Haute & 6 jours \\
+    \hline
+    US-25 & En tant que chef cuisinier, je souhaite un ordonnancement intelligent des tâches (Kitchen Optimizer). & Haute & 6 jours \\
+    \hline
+    US-26 & En tant qu'administrateur, je souhaite scanner des factures pour extraire les données via OCR IA. & Haute & 4 jours \\
     \hline
 \end{longtable}
 
@@ -423,20 +433,20 @@ Le Tableau~\ref{tab:planification_sprints} détaille le calendrier de livraison.
         \hline
         \textbf{Sprint} & \textbf{Objectif} & \textbf{Durée} & \textbf{Période} \\
         \hline
-        1 & Authentification et fondations & 3 semaines & 26/01 -- 15/02 \\
+        1 & Gestion des utilisateurs & 2 semaines & 26/01 -- 08/02 \\
         \hline
-        2 & Catalogue des plats & 3 semaines & 16/02 -- 08/03 \\
+        2 & Catalogue et Logistique & 3 semaines & 09/02 -- 01/03 \\
         \hline
-        3 & Commandes et paiement & 3 semaines & 09/03 -- 29/03 \\
+        3 & Événements et Commandes & 4 semaines & 02/03 -- 29/03 \\
         \hline
-        4 & Événements et devis & 3 semaines & 30/03 -- 19/04 \\
+        4 & Back-Office et Analytics & 2 semaines & 30/03 -- 12/04 \\
         \hline
-        5 & Intelligence artificielle & 3 semaines & 20/04 -- 10/05 \\
+        5 & Intelligence Artificielle & 5 semaines & 13/04 -- 17/05 \\
         \hline
     \end{tabular}
 \end{table}
 
-La période du \textbf{11/05 au 20/05} a été consacrée à la recette finale, aux correctifs de stabilisation et à la rédaction du présent rapport.
+La période du \textbf{18/05 au 25/05} a été consacrée à la recette finale, aux correctifs de stabilisation et à la rédaction du présent rapport.
 
 \subsection{Choix de langage de conception}
 
@@ -565,15 +575,15 @@ Les exigences de qualité transversales sont récapitulées dans le Tableau~\ref
         \hline
         Performance & Temps de réponse des API inférieur à 500~ms. Chatbot répondant en moins de 5 secondes. \\
         \hline
-        Sécurité & Mots de passe hachés (bcrypt), communications HTTPS, rotation des jetons JWT. \\
+        Sécurité & Mots de passe hachés (bcrypt), communications HTTPS, rotation des jetons JWT, limitation de débit (rate limiting), CSP renforcée, arrêt gracieux des services, jeton de service interne pour les communications inter-services. \\
         \hline
         Ergonomie & Interface responsive (mobile, tablette, ordinateur) et accessible. \\
         \hline
-        Maintenabilité & Séparation des préoccupations via les microservices. Respect des principes SOLID. \\
+        Maintenabilité & Séparation des préoccupations via les microservices. Respect des principes SOLID. Package partagé (\texttt{shared}) pour les utilitaires communs (génération de numéros de facture/commande, middlewares d'authentification). \\
         \hline
         Scalabilité & Chaque service peut être redimensionné de façon indépendante. \\
         \hline
-        Disponibilité & Tolérance à la panne d'un service sans interruption globale. \\
+        Disponibilité & Tolérance à la panne d'un service sans interruption globale. Arrêt gracieux (graceful shutdown) sur signaux SIGTERM/SIGINT pour préserver les requêtes en cours. \\
         \hline
         Compatibilité & Fonctionnement garanti sur Chrome, Firefox, Safari et Edge. \\
         \hline
@@ -588,14 +598,14 @@ Les deux figures ci-après offrent une cartographie synthétique des interaction
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{uc_global_front.png}
-    \caption{Cas d'utilisation global --- Front Office}
+    \caption{Cas d'utilisation global : Front Office}
     \label{fig:uc_global_front}
 \end{figure}
 
 \begin{figure}[!htbp]
     \centering
     \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{uc_global_back.png}
-    \caption{Cas d'utilisation global --- Back Office}
+    \caption{Cas d'utilisation global : Back Office}
     \label{fig:uc_global_back}
 \end{figure}
 
@@ -612,95 +622,11 @@ La Figure~\ref{fig:class_global} présente la structure statique de la solution,
 \end{figure}
 
 % --------------------------------------------------
-\section{Environnement de développement}
-
-\subsection{Environnement matériel}
-
-\begin{table}[H]
-    \centering
-    \caption{Poste de travail utilisé}
-    \label{tab:env_materiel}
-    \begin{tabular}{|l|l|}
-        \hline
-        \textbf{Composant} & \textbf{Spécification} \\
-        \hline
-        Machine & PC portable \\
-        \hline
-        Processeur & Intel Core i5 (ou équivalent) \\
-        \hline
-        Mémoire vive & 16 Go RAM \\
-        \hline
-        Stockage & SSD 512 Go \\
-        \hline
-        Système d'exploitation & Windows \\
-        \hline
-    \end{tabular}
-\end{table}
-
-\subsection{Environnement logiciel}
-
-Le Tableau~\ref{tab:env_logiciel} recense les outils mobilisés.
-
-\begin{table}[H]
-    \centering
-    \caption{Outils et technologies du projet}
-    \label{tab:env_logiciel}
-    \renewcommand{\arraystretch}{1.3}
-    \begin{tabular}{|p{3.5cm}|p{3cm}|p{6cm}|}
-        \hline
-        \textbf{Outil / Technologie} & \textbf{Version} & \textbf{Rôle dans le projet} \\
-        \hline
-        Visual Studio Code & Dernière & Environnement de rédaction du code \\
-        \hline
-        Node.js & 20+ & Moteur d'exécution des microservices \\
-        \hline
-        TypeScript & 5.x & Couche de typage pour fiabiliser les échanges \\
-        \hline
-        React & 19 & Construction des écrans (client et admin) \\
-        \hline
-        Vite & 7.x & Compilation ultra-rapide du Frontend \\
-        \hline
-        Tailwind CSS & 4.x & Habillage graphique via classes utilitaires \\
-        \hline
-        Express.js & 4.x & Routage HTTP interne des API \\
-        \hline
-        Prisma ORM & 5.x & Pont de communication avec PostgreSQL \\
-        \hline
-        PostgreSQL & 16 & Stockage des menus, utilisateurs et commandes \\
-        \hline
-        Python & 3.x & Scripts d'intelligence artificielle \\
-        \hline
-        FastAPI & Dernière & Interface rapide pour le chatbot \\
-        \hline
-        LangChain & 0.2.x & Orchestrateur des requêtes RAG \\
-        \hline
-        Google Gemini & 2.5 Flash & Modèle linguistique générant les réponses \\
-        \hline
-        Figma & En ligne & Maquettage graphique \\
-        \hline
-        Git & Dernière & Versionnement du code source \\
-        \hline
-        Postman & Dernière & Simulation et validation des requêtes API \\
-        \hline
-        Cloudinary & Cloud & Hébergement externe des photos de plats \\
-        \hline
-        ChromaDB & 0.5+ & Stockage vectoriel pour le pipeline RAG \\
-        \hline
-    \end{tabular}
-\end{table}
-
-\subsection{Architecture de déploiement}
-
-Le diagramme de déploiement (figure~\ref{fig:deploiement}) détaille la distribution physique des composants logiciels de la plateforme Assiette Gala, en illustrant les nœuds d'exécution (poste client, serveur d'application, serveur de bases de données) et les services externes mobilisés (Cloudinary, Google Gemini, Flouci, SMTP).
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\textwidth]{deploiement.png}
-    \caption{Diagramme de déploiement de la plateforme Assiette Gala}
-    \label{fig:deploiement}
-\end{figure}
-
 % --------------------------------------------------
-\section{Conclusion}
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
 
-Ce chapitre liminaire a posé le socle de notre intervention. En radiographiant les carences des solutions du marché et en les confrontant aux exigences réelles d'Assiette Gala Sfaxienne, nous avons justifié la conception d'un portail intégralement sur mesure. Le cadre Scrum et la notation UML baliseront la route des cinq sprints à venir, dont le premier --- consacré à la sécurisation des accès --- fait l'objet du chapitre suivant.
+\begin{samepage}
+Ce chapitre liminaire a posé le socle de notre intervention. En radiographiant les carences des solutions du marché et en les confrontant aux exigences réelles d'Assiette Gala Sfaxienne, nous avons justifié la conception d'un portail intégralement sur mesure. Le cadre Scrum et la notation UML baliseront la route des six sprints à venir. Le chapitre suivant détaille l'architecture logicielle et l'environnement technique retenus pour matérialiser cette vision.
+\end{samepage}
+

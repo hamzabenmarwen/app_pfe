@@ -1,0 +1,376 @@
+﻿% ============================================================
+% CHAPITRE 4 (Sprint 2)
+% ============================================================
+\chapter{Sprint 2 : Catalogue et Logistique}
+
+\section{Introduction}
+
+Ce deuxième cycle franchit un cap opérationnel majeur pour Assiette Gala Sfaxienne : la dématérialisation de la carte traiteur. Le but n'est plus seulement technique, il s'agit d'attirer l'œil du prospect avec une vitrine appétissante tout en donnant à l'équipe en cuisine un levier pour dé-publier un plat en rupture. Ce chapitre dépoussière la mécanique du module de catalogage, des allergènes jusqu'au stockage visuel des recettes.
+
+% --------------------------------------------------
+\section{Backlog du sprint}
+
+\begin{table}[H]
+    \centering
+    \caption{Backlog du sprint 2}
+    \label{tab:backlog_sprint2}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{8cm}|c|}
+        \hline
+        \textbf{ID} & \textbf{User Story} & \textbf{Durée} \\
+        \hline
+        US-07 & En tant que visiteur, je souhaite consulter et filtrer le catalogue des plats. & 3 \\
+        \hline
+        US-08 & En tant qu'administrateur, je souhaite ajouter et modifier des plats et catégories. & 4 \\
+        \hline
+        US-09 & En tant qu'administrateur, je souhaite gérer les allergènes pour des raisons de santé publique. & 2 \\
+        \hline
+        US-10 & En tant qu'administrateur, je souhaite gérer les stocks de matières premières. & 3 \\
+        \hline
+        US-11 & En tant qu'administrateur, je souhaite gérer les fournisseurs. & 2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Conception}
+
+\subsection{Diagramme de cas d'utilisation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{uc_sprint2.png}
+    \caption{Diagramme de cas d'utilisation du sprint 2}
+    \label{fig:uc_sprint2}
+\end{figure}
+
+\subsection{Description textuelle des cas d'utilisation}
+
+\subsubsection{Cas d'utilisation : Consulter le catalogue}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Consulter le catalogue}
+    \label{tab:desc_consulter_catalogue}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Consulter le catalogue \\
+        \hline
+        \textbf{Acteur principal} & Visiteur / Client \\
+        \hline
+        \textbf{Précondition} & Aucune \\
+        \hline
+        \textbf{Postcondition} & La liste des plats est affichée \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item L'internaute atterrit sur la grande vitrine de repas
+            \item Le serveur Express délivre le lot de plats disponibles
+            \item Isolement des repas par familles (entrées, suites, soupes) via le tri latéral
+            \item Utilisation de la loupe pour chercher une recette précise (ex: Couscous)
+            \item Observation de la fiche (Allergènes, tarif, belle photo)
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[4a.] Recette inexistante : avertissement poli de carence
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{Cas d'utilisation : Gérer les plats}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Gérer les plats}
+    \label{tab:desc_gerer_plats}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Gérer les plats (CRUD) \\
+        \hline
+        \textbf{Acteur principal} & Administrateur \\
+        \hline
+        \textbf{Précondition} & L'administrateur est authentifié \\
+        \hline
+        \textbf{Postcondition} & Le catalogue est mis à jour \\
+        \hline
+        \textbf{Scénario principal (ajout)} &
+        \begin{enumerate}
+            \item M. Daoud (ou gestionnaire) ouvre la modale de fabrication
+            \item Écriture de la dénomination commerciale, tarification et descriptif
+            \item Coche des potentielles traces d'arachides ou de gluten
+            \item Capture d'une belle assiette dressée
+            \item Envoi asynchrone du cliché vers le cloud Cloudinary
+            \item Enregistrement définitif du nouveau délice dans PostgreSQL
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[4a.] Photo trop lourde : blocage de sécurité
+            \item[2a.] Oubli de tarif : le bouton d'enregistrement reste grisé
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Diagrammes de séquence}
+
+\subsubsection{Séquence : Consulter le catalogue avec filtres}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_catalogue.png}
+    \caption{Diagramme de séquence : Consultation du catalogue}
+    \label{fig:seq_catalogue}
+\end{figure}
+
+\subsubsection{Séquence : Ajouter un plat}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_ajouter_plat.png}
+    \caption{Diagramme de séquence : Ajout d'un plat}
+    \label{fig:seq_ajouter_plat}
+\end{figure}
+
+\subsection{Diagramme de classes}
+
+Le diagramme de classes du service de catalogue (figure~\ref{fig:class_sprint2}) modélise les entités suivantes : \texttt{Plat}, \texttt{Category} et \texttt{Allergen}. La relation entre \texttt{Plat} et \texttt{Category} est de type plusieurs-à-un. La relation entre \texttt{Plat} et \texttt{Allergen} est de type plusieurs-à-plusieurs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{class_sprint2.png}
+    \caption{Diagramme de classes du service de catalogue}
+    \label{fig:class_sprint2}
+\end{figure}
+
+Le modèle \texttt{Plat} comporte les attributs :
+\begin{itemize}
+    \item \texttt{id} : identifiant unique (UUID)
+    \item \texttt{name} : nom du plat (unique)
+    \item \texttt{description} : texte descriptif du plat
+    \item \texttt{price} : prix en dinars tunisiens (type décimal)
+    \item \texttt{image} : URL de l'image hébergée sur Cloudinary
+    \item \texttt{isAvailable} : indicateur de disponibilité
+    \item \texttt{categoryId} : clé étrangère vers \texttt{Category}
+    \item \texttt{allergens} : relation plusieurs-à-plusieurs vers \texttt{Allergen}
+\end{itemize}
+
+Le modèle \texttt{Category} contient :
+\begin{itemize}
+    \item \texttt{id} : identifiant unique
+    \item \texttt{name} : nom de la catégorie (unique)
+    \item \texttt{description} : description optionnelle
+    \item \texttt{plats} : collection des plats de la catégorie
+\end{itemize}
+
+Le modèle \texttt{Allergen} contient :
+\begin{itemize}
+    \item \texttt{id} : identifiant unique
+    \item \texttt{name} : nom de l'allergène (unique)
+    \item \texttt{plats} : collection des plats contenant cet allergène
+\end{itemize}
+
+\subsection{Diagramme d'états-transitions}
+
+Le diagramme d'états-transitions (figure~\ref{fig:state_sprint2}) modélise le cycle de vie d'un plat dans le catalogue, de sa création à sa suppression éventuelle.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{state_sprint2_plat.png}
+    \caption{Diagramme d'états-transitions : Cycle de vie d'un plat}
+    \label{fig:state_sprint2}
+\end{figure}
+
+% --------------------------------------------------
+\section{Réalisation}
+
+\subsection{Points d'entrée de l'API}
+
+\begin{table}[H]
+    \centering
+    \caption{Endpoints REST du service de catalogue}
+    \label{tab:endpoints_catalog}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|p{4.5cm}|p{5.5cm}|}
+        \hline
+        \textbf{Méthode} & \textbf{Route} & \textbf{Description} \\
+        \hline
+        GET & /api/plats & Liste des plats (avec filtres et pagination) \\
+        \hline
+        GET & /api/plats/:id & Détails d'un plat \\
+        \hline
+        POST & /api/plats & Création d'un plat (administrateur) \\
+        \hline
+        PUT & /api/plats/:id & Modification d'un plat (administrateur) \\
+        \hline
+        DELETE & /api/plats/:id & Suppression d'un plat (administrateur) \\
+        \hline
+        GET & /api/categories & Liste des catégories \\
+        \hline
+        POST & /api/categories & Création d'une catégorie (administrateur) \\
+        \hline
+        PUT & /api/categories/:id & Modification d'une catégorie (administrateur) \\
+        \hline
+        DELETE & /api/categories/:id & Suppression d'une catégorie (administrateur) \\
+        \hline
+        GET & /api/allergens & Liste des allergènes \\
+        \hline
+        POST & /api/allergens & Création d'un allergène (administrateur) \\
+        \hline
+        PUT & /api/allergens/:id & Modification d'un allergène (administrateur) \\
+        \hline
+        DELETE & /api/allergens/:id & Suppression d'un allergène (administrateur) \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Schéma de la base de données retiré : le diagramme de classes (figure~\ref{fig:class_sprint2}) suffit à modéliser la structure des données.
+
+
+
+\subsection{Gestion des images avec Cloudinary}
+
+Plutôt que d'encombrer le serveur Express avec des fichiers lourds, nous avons délocalisé l'hébergement photographique chez \textbf{Cloudinary}. Cette décision s'est imposée parce qu'Assiette Gala photographie chaque assiette avant de la publier sur ses réseaux sociaux ; il fallait donc un entrepôt externe rapide et économique.
+
+\begin{itemize}
+    \item \textbf{Déportation du poids :} aucun binaire de 3 Mo ne transite dans PostgreSQL.
+    \item \textbf{Recadrage automatique :} la photo brute prise au smartphone est retaillée au format carré sans intervention manuelle.
+    \item \textbf{Distribution planétaire :} chaque cliché est répliqué sur un réseau de n\oe{}uds géographiques, garantissant un affichage instantané même depuis une connexion 3G.
+\end{itemize}
+
+Le convoyage d'une photo suit quatre étapes :
+\begin{enumerate}
+    \item Le formulaire d'administration embarque l'image en \texttt{multipart/form-data}.
+    \item Le module \texttt{multer} réceptionne le flux binaire côté Node.js.
+    \item Un appel asynchrone expédie le fichier vers le nuage Cloudinary.
+    \item Le lien HTTPS résultant est enregistré dans la colonne \texttt{image} du plat concerné.
+\end{enumerate}
+
+\subsection{Interfaces réalisées}
+
+\subsubsection{Catalogue public}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+L'internaute découvre l'offre culinaire sous forme de tuiles illustrées : chaque rectangle affiche la photographie du mets, sa dénomination, son tarif et la famille à laquelle il appartient. Un rail latéral permet d'isoler une catégorie particulière, tandis qu'une barre de saisie libre filtre les résultats en temps réel.
+
+\subsubsection{Détail d'un plat}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+En cliquant sur une tuile, le visiteur accède à un écran dédié qui déplie la photo en plein cadre, déroule le descriptif rédactionnel, affiche le tarif en dinars et liste les éventuels allergènes. Un bouton pousse le plat directement dans le panier.
+
+\subsubsection{Administration du catalogue}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Côté coulisses, l'équipe de gestion dispose d'un tableau à colonnes triées par nom, prix et catégorie. L'ajout ou la retouche d'un plat s'opère via une fenêtre surgissante (modale), et le dépôt d'une image se fait par simple glissé-lâché depuis le bureau.
+
+\subsubsection{Gestion des catégories et allergènes}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+% --------------------------------------------------
+\section{Tests fonctionnels}
+
+\begin{table}[H]
+    \centering
+    \caption{Tests fonctionnels : Sprint 2}
+    \label{tab:tests_sprint2}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{3cm}|p{3.5cm}|p{2.5cm}|}
+        \hline
+        \textbf{N°} & \textbf{Cas de test} & \textbf{Comportement attendu} & \textbf{Résultat} \\
+        \hline
+        1 & Affichage du catalogue & Plats chargés avec images, noms, prix & Réussi \\
+        \hline
+        2 & Filtrage par catégorie & Seuls les plats de la catégorie sélectionnée apparaissent & Réussi \\
+        \hline
+        3 & Recherche par nom & Résultats filtrés dynamiquement & Réussi \\
+        \hline
+        4 & Ajout d'un plat avec image & Plat créé, image téléversée sur Cloudinary & Réussi \\
+        \hline
+        5 & Modification d'un plat & Informations mises à jour & Réussi \\
+        \hline
+        6 & Suppression d'un plat & Plat retiré du catalogue & Réussi \\
+        \hline
+        7 & Ajout d'une catégorie & Catégorie créée et disponible & Réussi \\
+        \hline
+        8 & Ajout d'un allergène et association à un plat & Allergène créé et lié au plat & Réussi \\
+        \hline
+        9 & Consultation du détail d'un plat & Toutes les informations affichées & Réussi \\
+        \hline
+        10 & Accès admin sans authentification & Redirection vers la page de connexion & Réussi \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Partie B : Logistique (Stocks et Fournisseurs)}
+
+La gestion de stock constitue le second pilier de ce sprint. Elle permet de suivre en temps réel les matières premières, d'anticiper les ruptures et de tracer chaque mouvement d'entrée ou de sortie, en lien direct avec les fournisseurs.
+
+\subsection{Modèle de données Logistique}
+
+Le module introduit les entités suivantes :
+\begin{itemize}
+    \item \textbf{StockItem} : matière première (tomates, poulet, huile d'olive) avec quantité en stock, unité de mesure et seuil d'alerte.
+    \item \textbf{StockMovement} : mouvement d'entrée (achat fournisseur) ou de sortie (consommation cuisine) avec traçabilité de l'utilisateur.
+    \item \textbf{Supplier} : fournisseur avec raison sociale, contact et catégories de produits fournies.
+\end{itemize}
+
+\subsection{Fonctionnalités implémentées}
+
+\begin{itemize}
+    \item Consultation du stock en temps réel avec indicateurs visuels (vert, orange, rouge).
+    \item Enregistrement des entrées et sorties.
+    \item Alertes de stock critique (sous le seuil minimum configuré).
+    \item Création et suivi des fiches fournisseurs.
+\end{itemize}
+
+\subsection{Description textuelle des cas d'utilisation (Logistique)}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Gérer le stock}
+    \label{tab:desc_stock}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Gérer le stock et les fournisseurs \\
+        \hline
+        \textbf{Acteur principal} & Administrateur \\
+        \hline
+        \textbf{Précondition} & Authentifié \\
+        \hline
+        \textbf{Postcondition} & Le mouvement de stock est enregistré, traçabilité assurée \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Le chef de cuisine constate un besoin en tomates fraîches
+            \item L'administrateur crée une fiche fournisseur (si inexistante)
+            \item Réception de la marchandise et saisie du mouvement "Entrée"
+            \item Le système incrémente la jauge de tomates et retire l'alerte de rupture
+        \end{enumerate} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Interfaces Logistiques}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+% FIGURE UI REMOVED : Add screenshot later
+
+% --------------------------------------------------
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\begin{samepage}
+Ce passage en revue du Sprint 2 signe l'ouverture officielle de la carte traiteur. En confiant le stockage des clichés à Cloudinary et la classification des repas à un module Prisma, la gestion du menu devient un jeu d'enfant. L'Assiette Gala possède dorénavant une authentique salle d'exposition culinaire. Le terrain est déblayé pour accueillir, lors du Sprint 3, la concrétisation des ventes et des devis financiers liés à ces mets.
+\end{samepage}
+

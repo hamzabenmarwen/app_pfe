@@ -1,0 +1,236 @@
+﻿% ============================================================
+% CHAPITRE 7 (Sprint 5)
+% ============================================================
+\chapter{Sprint 5 : Intelligence Artificielle}
+
+\section{Introduction}
+
+Ce cinquième et dernier sprint constitue l'aboutissement technologique de ce projet de Master. Alors que les sprints précédents ont permis de consolider l'architecture transactionnelle (le \textit{CRUD} classique) d'Assiette Gala, cette phase dote le système d'une véritable \textbf{intelligence décisionnelle et conversationnelle}. L'objectif n'est plus seulement d'enregistrer des données, mais de les analyser, de prédire des comportements et d'optimiser les ressources de l'entreprise.
+
+Ce sprint déploie cinq briques majeures d'Intelligence Artificielle : l'assistant conversationnel RAG (Traitement du Langage Naturel), le moteur de recommandation hybride, l'algorithme prédictif des besoins en stock (\textit{Forecasting}), le planificateur intelligent de tâches en cuisine (\textit{Kitchen Optimizer}) et l'extracteur de données de factures par vision artificielle (OCR).
+
+% --------------------------------------------------
+\section{Backlog du sprint}
+
+Le Tableau~\ref{tab:backlog_sprint5_ia} synthétise les user stories de ce sprint, dont les durées reflètent la complexité de l'ingénierie algorithmique.
+
+\begin{table}[H]
+    \centering
+    \caption{Backlog du sprint 5 : Intelligence Artificielle}
+    \label{tab:backlog_sprint5_ia}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{8.5cm}|c|}
+        \hline
+        \textbf{ID} & \textbf{User Story} & \textbf{Durée (jours)} \\
+        \hline
+        US-22 & En tant que visiteur, je souhaite interagir avec un chatbot RAG (NLP) pour des réponses expertes sur le menu. & 5 \\
+        \hline
+        US-23 & En tant que client, je souhaite recevoir des recommandations de plats basées sur mes goûts. & 4 \\
+        \hline
+        US-24 & En tant qu'administrateur, je souhaite que le système prévoie les besoins en stocks (Forecasting). & 6 \\
+        \hline
+        US-25 & En tant que chef cuisinier, je souhaite un ordonnancement intelligent des tâches (Kitchen Optimizer). & 6 \\
+        \hline
+        US-26 & En tant qu'administrateur, je souhaite scanner des factures pour extraire les données via OCR IA. & 4 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% ==============================================================
+\section{Moteur Conversationnel : Architecture RAG}
+% ==============================================================
+
+\subsection{Principes du RAG (Retrieval-Augmented Generation)}
+
+Le chatbot ne s'appuie pas uniquement sur les connaissances pré-entraînées du modèle linguistique, ce qui risquerait de produire des hallucinations. Il utilise une architecture RAG qui intercepte la question, recherche des documents pertinents dans la base de données métier (le catalogue et les tarifs actuels d'Assiette Gala), et force le modèle \textbf{Google Gemini 2.5 Flash} à formuler sa réponse à partir de ce contexte précis.
+
+\subsection{Pipeline d'indexation et de recherche}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{seq_chatbot.png}
+    \caption{Architecture RAG : Indexation vectorielle et Génération}
+    \label{fig:rag_pipeline}
+\end{figure}
+
+Le pipeline s'articule autour de \textbf{LangChain} et de \textbf{FAISS} (Facebook AI Similarity Search) :
+\begin{enumerate}
+    \item \textbf{Vectorisation (Embedding) :} Chaque fiche plat est convertie en vecteur dense (384 dimensions) via le modèle \textit{all-MiniLM-L6-v2}.
+    \item \textbf{Stockage :} Les vecteurs sont persistés dans une base vectorielle FAISS locale, optimisée pour le calcul de distance L2.
+    \item \textbf{Filtrage Sémantique :} Un routeur d'intention classe la requête entrante (\texttt{menu}, \texttt{allergen}, \texttt{event}) pour réduire l'espace de recherche vectorielle.
+    \item \textbf{Top-K Retrieval :} FAISS extrait les 5 documents les plus sémantiquement proches de la requête.
+    \item \textbf{Prompt Augmenté :} Le contexte extrait est injecté dynamiquement dans un prompt strict avant soumission à Gemini.
+\end{enumerate}
+
+\subsection{Rafraîchissement de la base de connaissances}
+
+Le diagramme de séquence suivant (figure~\ref{fig:seq_refresh_knowledge}) illustre le processus d'indexation de la base de connaissances, déclenché par l'administrateur pour synchroniser le catalogue avec l'index vectoriel FAISS.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_refresh_knowledge.png}
+    \caption{Diagramme de séquence : Rafraîchissement de la base de connaissances}
+    \label{fig:seq_refresh_knowledge}
+\end{figure}
+
+% ==============================================================
+\section{Forecasting Engine : Prévision des Stocks}
+% ==============================================================
+
+L'un des défis majeurs d'un traiteur est d'éviter le gaspillage alimentaire tout en prévenant les ruptures de stock. Le \textbf{Forecasting Engine} est un modèle d'analyse prédictive.
+
+\subsection{Algorithme de lissage exponentiel}
+
+Le moteur analyse les séries temporelles des commandes passées (historique de 6 mois). Plutôt que d'utiliser une moyenne mobile simple, il applique un \textbf{lissage exponentiel} qui accorde plus de poids aux tendances récentes et intègre des coefficients de saisonnalité (pics d'événements le week-end).
+
+$$
+F_{t+1} = \alpha \cdot D_t + (1 : \alpha) \cdot F_t
+$$
+
+Où $F_{t+1}$ est la prévision, $D_t$ la demande réelle, et $\alpha$ le facteur de lissage dynamique. L'algorithme décompose les plats commandés en leurs \textbf{ingrédients bruts} (via une nomenclature), générant ainsi un rapport prédictif des kilos de viande, légumes et épices nécessaires pour les 7 prochains jours.
+
+% ==============================================================
+\section{Kitchen Optimizer : Ordonnancement Intelligent}
+% ==============================================================
+
+Le \textbf{Kitchen Optimizer} s'attaque au problème complexe de la planification des tâches en cuisine, assimilable au problème d'ordonnancement d'atelier (Job-Shop Scheduling Problem : JSSP).
+
+\subsection{Heuristique d'ordonnancement}
+
+L'algorithme reçoit en entrée un lot de commandes à livrer à une heure précise. Il découpe chaque commande en sous-tâches (préparation, cuisson, dressage) ayant des durées et des dépendances strictes.
+En utilisant la \textbf{méthode du chemin critique (CPM)} et une heuristique gloutonne, le système répartit les tâches entre les postes de travail (four, plan de travail, frigo) pour minimiser le temps d'inactivité global (le \textit{makespan}) et garantir que les plats chauds sortent juste avant l'expédition.
+
+% ==============================================================
+\section{AI Receipt Scanner : Vision par Ordinateur}
+% ==============================================================
+
+Pour automatiser la saisie des charges, le portail intègre un module d'\textbf{Extraction d'Information (OCR structuré)}.
+
+L'administrateur photographie une facture fournisseur. L'image est transmise au modèle multimodal \textbf{Gemini Vision}, accompagnée d'un schéma d'extraction JSON (Structured Output). L'IA repère et extrait de l'image le nom du fournisseur, la date, le numéro de facture, le montant HT, la TVA et le total TTC, permettant ainsi la création automatique de l'écriture comptable sans saisie manuelle.
+
+% ==============================================================
+\section{Moteur de Recommandation}
+% ==============================================================
+
+Le moteur de recommandation utilise une approche de \textbf{Filtrage Collaboratif Item-Item}. En calculant la matrice de co-occurrence des plats présents dans les paniers des clients (``Les clients ayant commandé du saumon commandent souvent de la salade nordique''), le système pousse des suggestions croisées (cross-selling) directement sur l'interface d'accueil.
+
+% ==============================================================
+\section{Interfaces de l'Intelligence Artificielle}
+% ==============================================================
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Les interfaces permettent à l'administrateur de déclencher les calculs de prévision (Forecasting) d'un simple clic et d'exporter les résultats sous forme de matrice d'achats. Le Kitchen Optimizer se matérialise sous la forme d'un diagramme de Gantt interactif à destination du chef cuisinier.
+
+% ==============================================================
+\section{Conception et Tests}
+% ==============================================================
+
+\subsection{Diagramme de cas d'utilisation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{uc_sprint5.png}
+    \caption{Diagramme de cas d'utilisation : Intelligence Artificielle}
+    \label{fig:uc_sprint5_ia}
+\end{figure}
+
+\subsection{Diagramme de classes}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{class_sprint5.png}
+    \caption{Diagramme de classes du sprint 5 : Modules IA}
+    \label{fig:class_sprint5}
+\end{figure}
+
+\subsection{Diagramme d'états-transitions du chatbot}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{state_sprint5_chatbot.png}
+    \caption{Diagramme d'états-transitions : Conversation chatbot}
+    \label{fig:state_chatbot}
+\end{figure}
+
+\subsection{Description textuelle : Interagir avec le chatbot}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Interaction chatbot}
+    \label{tab:desc_chatbot}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Interagir avec le chatbot RAG \\
+        \hline
+        \textbf{Acteur principal} & Client / Visiteur \\
+        \hline
+        \textbf{Précondition} & Accès à l'interface web \\
+        \hline
+        \textbf{Postcondition} & Réponse générée affichée \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item L'utilisateur pose une question dans le widget
+            \item Vectorisation via \textit{all-MiniLM-L6-v2}
+            \item FAISS extrait le contexte du catalogue
+            \item Prompt envoyé à Gemini 2.5 Flash
+            \item Réponse affichée
+        \end{enumerate} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Points d'entrée de l'API (FastAPI)}
+
+\begin{table}[H]
+    \centering
+    \caption{Endpoints REST du microservice IA}
+    \label{tab:endpoints_ia}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|p{4.5cm}|p{5.5cm}|}
+        \hline
+        \textbf{Méthode} & \textbf{Route} & \textbf{Description} \\
+        \hline
+        POST & /api/chat/message & Envoi d'une question au chatbot \\
+        \hline
+        GET & /api/recommendations & Suggestions de plats \\
+        \hline
+        POST & /api/forecasting/run & Lancement du calcul prédictif des stocks \\
+        \hline
+        POST & /api/ocr/scan-receipt & Extraction de données de facture \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Tests fonctionnels}
+
+\begin{table}[H]
+    \centering
+    \caption{Tests fonctionnels : Sprint 5}
+    \label{tab:tests_sprint5}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{4cm}|p{4cm}|p{2cm}|}
+        \hline
+        \textbf{N°} & \textbf{Cas de test} & \textbf{Comportement attendu} & \textbf{Résultat} \\
+        \hline
+        1 & Question complexe au chatbot & Réponse précise sans hallucination & Réussi \\
+        \hline
+        2 & Calcul Forecasting sur historique & Prédiction cohérente avec les tendances & Réussi \\
+        \hline
+        3 & Upload facture illisible (OCR) & Message d'erreur approprié & Réussi \\
+        \hline
+        4 & Ordonnancement cuisine & Pas de chevauchement de tâches sur un même four & Réussi \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\begin{samepage}
+Ce cinquième sprint clôture le cycle de développement en démontrant la capacité du projet à dépasser le stade de l'application web classique pour s'inscrire dans l'ère de l'intelligence artificielle appliquée. L'implémentation de modèles mathématiques de prévision, d'algorithmes d'optimisation de ressources et d'architectures RAG confère à cette plateforme une profondeur technique digne d'un diplôme de Master. Le système est désormais complet, de la sécurisation des accès à l'aide à la décision stratégique de haut niveau.
+\end{samepage}
+

@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt,oneside,final]{report}
+﻿\documentclass[a4paper,12pt,oneside,final]{report}
 
 % ============================================================
 % PACKAGES
@@ -11,9 +11,11 @@
 \usepackage{geometry}
 \geometry{top=2.5cm, bottom=2.5cm, left=2cm, right=2cm, bindingoffset=0.5cm}
 \usepackage{microtype}       % Micro-typographie (justification propre)
+\raggedbottom               % Empêche l'étirement vertical abusif (espaces vides)
 
 \usepackage{graphicx}
-\setkeys{Gin}{draft=false}
+\graphicspath{{diagrams/}}
+% \\setkeys{Gin}{draft=false}  % Retiré : empêchait le mode draft d'Overleaf
 \usepackage{rotating}
 \usepackage{float}
 \usepackage{caption}
@@ -31,12 +33,14 @@
 \usepackage{titlesec}
 \usepackage{setspace}
 \usepackage{amsmath}
+\let\Bbbk\relax % Fix conflict between newtxmath and amssymb
 \usepackage{amssymb}
 \usepackage{pifont}
 \usepackage{tocloft}
 \usepackage{etoolbox}
 \usepackage{appendix}
 \usepackage[bottom]{footmisc}
+\usepackage{tikz}           % Pour les en-têtes colorés
 
 % ============================================================
 % CONFIGURATION
@@ -66,23 +70,60 @@
   pdftitle={Conception et Développement d'une Solution Digitale Intelligente pour la Gestion des Activités de Traiteur},
 }
 
-% En-tête et pied de page
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\leftmark}
-\fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.5pt}
-\renewcommand{\footrulewidth}{0pt}
+% ============================================================
+% COULEURS DES CHAPITRES
+% ============================================================
+\definecolor{chap-etude}{HTML}{1a365d}       % Bleu foncé : Étude Préalable
+\definecolor{chap-archi}{HTML}{2b6cb0}        % Bleu : Architecture
+\definecolor{chap-auth}{HTML}{276749}         % Vert : Sprint 1 Auth
+\definecolor{chap-catalogue}{HTML}{c05621}    % Orange : Sprint 2 Catalogue
+\definecolor{chap-events}{HTML}{6b46c1}       % Violet : Sprint 3 Événements
+\definecolor{chap-orders}{HTML}{c53030}       % Rouge : Sprint 4 Commandes
+\definecolor{chap-dashboard}{HTML}{2c7a7b}    % Teal : Sprint 5 Dashboard
+\definecolor{chap-ia}{HTML}{b7791f}           % Doré : Sprint 6 IA
+
+% Variable globale pour la couleur du chapitre courant
+\newcommand{\currentchapcolor}{black}
+
+% ============================================================
+% EN-TÊTE ET PIED DE PAGE — style Rapport Racem
+% ============================================================
+
+% Format personnalisé pour \leftmark (sans majuscules forcées)
+\renewcommand{\chaptermark}[1]{%
+  \markboth{Chapitre \thechapter\ : #1}{}%
+}
+
+% Commande partagée pour l'en-tête
+\newcommand{\myheadersetup}{%
+  \fancyhf{}%
+  \fancyhead[L]{%
+    \small\textbf{\leftmark}\hspace{1em}%
+    {\color{\currentchapcolor}\leaders\hrule height 8pt\hfill\kern0pt}%
+  }%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\headrule}{}%
+  \fancyfoot[C]{\thepage}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+% Style fancy : appliqué sur toutes les pages normales
+\fancypagestyle{fancy}{\myheadersetup}
+
+% Style plain : appliqué sur les premières pages de chapitre — pas d'en-tête ici (en préliminaire)
 \fancypagestyle{plain}{%
   \fancyhf{}
-  \fancyfoot[C]{\thepage}
   \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\headrule}{}
+  \fancyfoot[C]{\thepage}
   \renewcommand{\footrulewidth}{0pt}
 }
 
-% Style des chapitres
+% ============================================================
+% STYLE DES CHAPITRES — avec bandeau coloré
+% ============================================================
 \titleformat{\chapter}[display]
-  {\normalfont\huge\bfseries}
+  {\normalfont\huge\bfseries\color{black}}
   {\chaptertitlename\ \thechapter}{20pt}{\Huge}
 \titlespacing*{\chapter}{0pt}{-20pt}{30pt}
 
@@ -147,76 +188,95 @@
 % Chemin des images — cherche dans diagrams/ et dans le dossier racine
 \graphicspath{{./diagrams/}{./}}
 
-% Placeholder propre pour les images manquantes (en attendant l'ajout final)
-\let\Originalincludegraphics\includegraphics
-\newcommand{\missinggraphic}[1]{%
-  \fbox{%
-    \parbox[c][0.22\textheight][c]{0.86\linewidth}{%
-      \centering
-      \textbf{Illustration à insérer}\\[2mm]
-      \small Fichier attendu : \texttt{\detokenize{#1}}%
-    }%
-  }%
-}
-\newcommand{\smartincludegraphics}[2][]{%
-  % Keep placeholders only for truly missing files while still checking ./diagrams.
-  \IfFileExists{#2}{%
-    \Originalincludegraphics[#1]{#2}%
-  }{%
-    \IfFileExists{diagrams/#2}{%
-      \Originalincludegraphics[#1]{diagrams/#2}%
-    }{%
-      \missinggraphic{#2}%
-    }%
-  }%
-}
-\renewcommand{\includegraphics}[2][]{%
-  \smartincludegraphics[#1]{#2}%
-}
+% Placeholder macro removed — was causing Overleaf timeouts by bypassing draft mode.
+% All diagram PNGs now exist in diagrams/. UI screenshots are commented out.
 
 % ============================================================
 % DOCUMENT
 % ============================================================
 \begin{document}
 
-% --- Pages préliminaires (numérotation romaine) ---
-\pagenumbering{roman}
+% : Page de garde (hors numérotation) ---
+\input{pages/page_de_garde}
+\clearpage
+
+% : Pages préliminaires (numérotation romaine) ---
+\pagenumbering{Roman}
 \pagestyle{plain}
 
-% Dédicace, remerciements et déclaration
+% Dédicace, remerciements, résumés
 \input{pages/dedicace}
 \input{pages/remerciements}
-\input{pages/declaration_originalite}
 \input{pages/resume}
 \input{pages/abstract}
 
-\pagestyle{fancy}
+% \pagestyle{fancy} % Deplacé après les tables
 
 % Tables
 \tableofcontents
 \clearpage
 
 \listoffigures
+\addcontentsline{toc}{chapter}{Liste des figures}
 \clearpage
 
 \listoftables
-\clearpage
+\addcontentsline{toc}{chapter}{Liste des tableaux}
 
 \input{pages/glossaire}
 
-% --- Corps du rapport (numérotation arabe) ---
+% : Corps du rapport (numérotation arabe) ---
+\clearpage
 \pagenumbering{arabic}
 
+% Activer les en-têtes pour toutes les pages (y compris les premières pages de chapitres)
+\pagestyle{fancy}
+\fancypagestyle{plain}{\myheadersetup}
+
+% Introduction Générale
 \input{chapters/introduction_generale}
+
+% Chapitre 1 : Étude Préalable (bleu foncé)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-etude}
 \input{chapters/chapitre1_etude_prealable}
-\input{chapters/chapitre2_sprint1_auth}
-\input{chapters/chapitre3_sprint2_catalogue}
-\input{chapters/chapitre4_sprint3_commandes}
-\input{chapters/chapitre5_sprint4_evenements}
-\input{chapters/chapitre6_sprint5_ia}
+
+% Chapitre 2 : Architecture logicielle et framework de développement (bleu)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-archi}
+\input{chapters/chapitre2_architecture}
+
+% Chapitre 3 (Sprint 1) : Gestion des utilisateurs (vert)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-auth}
+\input{chapters/chapitre3_sprint1_auth}
+
+% Chapitre 4 (Sprint 2) : Catalogue et Logistique (orange)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-catalogue}
+\input{chapters/chapitre4_sprint2_catalogue_logistique}
+
+% Chapitre 5 (Sprint 3) : Événements et Commandes (violet)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-events}
+\input{chapters/chapitre5_sprint3_client}
+
+% Chapitre 6 (Sprint 4) : Back-Office et Analytics (teal)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-dashboard}
+\input{chapters/chapitre6_sprint4_admin}
+
+% Chapitre 7 (Sprint 5) : Intelligence Artificielle (doré)
+\clearpage
+\renewcommand{\currentchapcolor}{chap-ia}
+\input{chapters/chapitre7_sprint5_ia}
+
+% Conclusion Générale
+\clearpage
+\renewcommand{\currentchapcolor}{black}
 \input{chapters/conclusion_generale}
 
-% --- Bibliographie ---
+% : Bibliographie ---
 \input{pages/bibliographie}
 
 \end{document}

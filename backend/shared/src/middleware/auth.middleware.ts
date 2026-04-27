@@ -36,9 +36,23 @@ export function adminMiddleware(
   res: Response,
   next: NextFunction
 ): void {
+  // Self-contained: verify token if not already done
   if (!req.user) {
-    errorResponse(res, 'Authentication required', 401);
-    return;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      errorResponse(res, 'Access token is required', 401);
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const payload = verifyAccessToken(token);
+
+    if (!payload) {
+      errorResponse(res, 'Invalid or expired token', 401);
+      return;
+    }
+
+    req.user = payload;
   }
 
   if (req.user.role !== UserRole.ADMIN) {

@@ -137,6 +137,18 @@ export const orderService = {
   },
 };
 
+export interface OrderConfig {
+  minLeadHours: number;
+  minAmount: number;
+  deliveryFee: number;
+  taxRate: number;
+}
+
+export async function getOrderConfig(): Promise<{ data: OrderConfig }> {
+  const response = await api.get('/orders/config');
+  return response.data;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;

@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
-import crypto from 'crypto';
+import { generateInvoiceNumber } from '@traiteurpro/shared';
 
 const FLOUCI_API_URL = 'https://developers.flouci.com/api';
 const FLOUCI_APP_TOKEN = process.env.FLOUCI_APP_TOKEN || '';
@@ -212,10 +212,3 @@ export async function verifyFlouciPayment(
   return { verified: false, status: data.result.status };
 }
 
-function generateInvoiceNumber(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
-  return `INV-${year}${month}-${random}`;
-}

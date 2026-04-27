@@ -1,126 +1,255 @@
 classDiagram
+    direction LR
+
+    %% ========== Auth Service ==========
     class User {
-        - id: String
-        - email: String
-        - firstName: String
-        - lastName: String
-        - phone: String
-        - role: UserRole
-        - passwordHash: String
-        - isActive: Boolean
-        - avatarUrl: String
-        - createdAt: DateTime
+        -id : String
+        -email : String
+        -passwordHash : String
+        -firstName : String
+        -lastName : String
+        -phone : String
+        -role : UserRole
+        -avatarUrl : String
+        -isActive : Boolean
+        +register(data) User
+        +authenticate(email, password) Token
+        +updateProfile(data) void
+        +changePassword(old, new) void
+        +resetPassword(token) void
+    }
+
+    class UserRole {
+        <<enumeration>>
+        ADMIN
+        CLIENT
     }
 
     class Address {
-        - id: String
-        - userId: String
-        - label: String
-        - street: String
-        - city: String
-        - zipCode: String
-        - country: String
-        - isDefault: Boolean
+        -id : String
+        -label : String
+        -street : String
+        -city : String
+        -zipCode : String
+        -country : String
+        -isDefault : Boolean
+    }
+
+    User --> UserRole : has
+    User "1" *-- "*" Address : possède
+
+    %% ========== Catalog Service ==========
+    class Category {
+        -id : String
+        -name : String
+        -description : String
+        -imageUrl : String
+        -displayOrder : Int
+        +getPlats() Plat[]
     }
 
     class Plat {
-        - id: String
-        - nom: String
-        - description: String
-        - prix: Decimal
-        - categoryId: String
-        - imageUrl: String
-        - isAvailable: Boolean
-        - preparationTime: Int
+        -id : String
+        -name : String
+        -description : String
+        -price : Decimal
+        -images : String[]
+        -isAvailable : Boolean
+        -preparationTime : Int
+        +checkAvailability() Boolean
+        +updatePrice(price) void
     }
 
-    class Category {
-        - id: String
-        - nom: String
-        - description: String
+    class Ingredient {
+        -id : String
+        -name : String
+        -unit : String
+        -quantity : Decimal
+        -minQuantity : Decimal
+        -costPerUnit : Decimal
+        -isLowStock : Boolean
+        +checkStock() Boolean
+        +updateQuantity(qty) void
+    }
+
+    class IngredientCategory {
+        -id : String
+        -name : String
     }
 
     class Allergen {
-        - id: String
-        - nom: String
+        -id : String
+        -name : String
+        -icon : String
     }
 
+    class Supplier {
+        -id : String
+        -name : String
+        -contactName : String
+        -email : String
+        -phone : String
+        +listIngredients() Ingredient[]
+    }
+
+    class PurchaseOrder {
+        -id : String
+        -poNumber : String
+        -status : PurchaseOrderStatus
+        -subtotal : Decimal
+        +send() void
+        +receive() void
+        +cancel() void
+    }
+
+    class PurchaseOrderStatus {
+        <<enumeration>>
+        DRAFT
+        SENT
+        RECEIVED
+        CANCELLED
+    }
+
+    Category "1" *-- "*" Plat : contient
+    Plat "*" -- "*" Ingredient : composé de
+    Plat "*" -- "*" Allergen : contient
+    IngredientCategory "1" o-- "*" Ingredient : catégorise
+    Supplier "1" o-- "*" Ingredient : fournit
+    Supplier "1" -- "*" PurchaseOrder : reçoit
+    PurchaseOrder --> PurchaseOrderStatus : a
+
+    %% ========== Order Service ==========
     class Order {
-        - id: String
-        - userId: String
-        - orderNumber: String
-        - status: OrderStatus
-        - subtotal: Decimal
-        - deliveryFee: Decimal
-        - tax: Decimal
-        - totalAmount: Decimal
-        - deliveryAddress: Json
-        - deliveryDate: DateTime
+        -id : String
+        -userId : String
+        -orderNumber : String
+        -status : OrderStatus
+        -totalAmount : Decimal
+        -deliveryDate : DateTime
+        +confirm() void
+        +cancel() void
+        +generateInvoice() Invoice
     }
 
     class OrderItem {
-        - id: String
-        - orderId: String
-        - platId: String
-        - platName: String
-        - quantity: Int
-        - unitPrice: Decimal
+        -id : String
+        -platId : String
+        -platName : String
+        -quantity : Int
+        -unitPrice : Decimal
+    }
+
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        CONFIRMED
+        PREPARING
+        READY
+        DELIVERING
+        DELIVERED
+        CANCELLED
     }
 
     class Invoice {
-        - id: String
-        - orderId: String
-        - invoiceNumber: String
-        - amount: Decimal
-        - taxAmount: Decimal
-        - pdfUrl: String
+        -id : String
+        -invoiceNumber : String
+        -amount : Decimal
+        -taxAmount : Decimal
+        -pdfUrl : String
+        +generatePDF() Blob
     }
 
     class Payment {
-        - id: String
-        - invoiceId: String
-        - amount: Decimal
-        - method: PaymentMethod
-        - status: PaymentStatus
-        - transactionRef: String
-        - paidAt: DateTime
+        -id : String
+        -amount : Decimal
+        -method : PaymentMethod
+        -status : PaymentStatus
+        +process() void
+        +refund() void
     }
 
+    User "1" -- "*" Order : passe
+    Order "1" *-- "*" OrderItem : contient
+    OrderItem "*" --> "1" Plat : référence
+    Order "1" *-- "0..1" Invoice : génère
+    Invoice "1" *-- "0..1" Payment : reçoit
+    Order --> OrderStatus : a
+
+    %% ========== Event Service ==========
     class Event {
-        - id: String
-        - userId: String
-        - type: String
-        - title: String
-        - date: DateTime
-        - guestCount: Int
-        - budget: Decimal
-        - status: EventStatus
-        - description: String
+        -id : String
+        -userId : String
+        -name : String
+        -eventType : EventType
+        -status : EventStatus
+        -eventDate : DateTime
+        -guestCount : Int
+        -budget : Decimal
+        +submitRequest() void
+        +confirm() void
+        +cancel() void
+    }
+
+    class EventType {
+        <<enumeration>>
+        WEDDING
+        CORPORATE
+        BIRTHDAY
+        COCKTAIL
+        OTHER
+    }
+
+    class EventStatus {
+        <<enumeration>>
+        DRAFT
+        PENDING_QUOTE
+        QUOTE_SENT
+        CONFIRMED
+        COMPLETED
+        CANCELLED
     }
 
     class Quote {
-        - id: String
-        - eventId: String
-        - totalPrice: Decimal
-        - status: QuoteStatus
-        - items: Json
-        - message: String
+        -id : String
+        -quoteNumber : String
+        -status : QuoteStatus
+        -totalAmount : Decimal
+        -validUntil : DateTime
+        +send() void
+        +accept() void
+        +reject() void
     }
 
-    class Conversation {
-        - sessionId: String
-        - userId: String
-        - messages: Message[]
+    class EventMenuItem {
+        -id : String
+        -platId : String
+        -platName : String
+        -quantity : Int
     }
 
-    User "1" --> "*" Address : Posseder
-    User "1" --> "*" Order : Passer
-    User "1" --> "*" Event : Demander
-    User "1" --> "*" Conversation : Initier
-    Order "1" --> "*" OrderItem : Contenir
-    Order "1" --> "0..1" Invoice : Generer
-    Invoice "1" --> "0..1" Payment : Associer
-    Plat "*" --> "1" Category : Appartenir
-    Plat "*" --> "*" Allergen : Contenir
-    Event "1" --> "*" Quote : Recevoir
-    OrderItem "*" ..> "1" Plat : Referencer
+    User "1" -- "*" Event : demande
+    Event "1" *-- "*" EventMenuItem : inclut
+    EventMenuItem "*" --> "1" Plat : référence
+    Event "1" -- "*" Quote : reçoit
+    Event --> EventStatus : a
+    Event --> EventType : a
+
+    %% ========== Transversal ==========
+    class Expense {
+        -id : String
+        -title : String
+        -category : String
+        -amount : Decimal
+        -status : ExpenseStatus
+        +approve() void
+        +reject() void
+    }
+
+    class AuditLog {
+        -id : String
+        -module : String
+        -action : String
+        -entityType : String
+        -message : String
+        -timestamp : DateTime
+    }

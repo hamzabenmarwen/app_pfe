@@ -1,0 +1,45 @@
+﻿@startuml
+left to right direction
+skinparam linetype polyline
+skinparam usecase {
+  BackgroundColor #dce6f5
+  BorderColor #4472c4
+  ArrowColor #333333
+}
+skinparam actor {
+  BorderColor #4472c4
+}
+skinparam rectangle {
+  BorderColor #4472c4
+  BackgroundColor #ffffff
+}
+
+actor "Client" as Client
+actor "Administrateur" as Admin
+
+rectangle "SystÃ¨me Assiette Gala - Sprint 3 : Ã‰vÃ©nements et Commandes" {
+  usecase "Ajouter des plats\nau panier" as UC1
+  usecase "Valider la commande" as UC2
+  usecase "Suivre l'Ã©tat\nde la commande" as UC3
+  usecase "TÃ©lÃ©charger\nla facture PDF" as UC4
+  usecase "Soumettre une demande\nd'Ã©vÃ©nement" as UC5
+  usecase "Consulter ses devis" as UC6
+  usecase "Traiter les commandes" as UC7
+  usecase "GÃ©rer les demandes\nd'Ã©vÃ©nements" as UC8
+  usecase "Calculer le devis\nautomatique" as UC9
+}
+
+Client --> UC1
+Client --> UC2
+Client --> UC3
+Client --> UC4
+Client --> UC5
+Client --> UC6
+
+Admin --> UC7
+Admin --> UC8
+
+UC2 ..> UC9 : <<include>>
+UC5 ..> UC9 : <<include>>
+@enduml
+

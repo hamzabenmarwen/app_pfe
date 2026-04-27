@@ -1,62 +1,51 @@
-flowchart TB
-    subgraph client["Poste Client"]
-        Browser["Navigateur Web<br/>Chrome / Firefox"]
+flowchart TD
+    subgraph "Postes Clients (Navigateurs)"
+        ClientBrowser("Navigateur (Client)\nReact / TailwindCSS")
+        AdminBrowser("Navigateur (Admin)\nReact / TailwindCSS")
     end
 
-    subgraph server["Serveur Application"]
-        subgraph frontend_node["Conteneur Frontend"]
-            Frontend["Frontend React<br/>Vite - Port 5174"]
-        end
-        subgraph gateway_node["Conteneur API Gateway"]
-            Gateway["API Gateway<br/>Express.js - Port 3000"]
-        end
-        subgraph auth_node["Conteneur Auth"]
-            Auth["Auth Service<br/>Express.js - Port 3001"]
-        end
-        subgraph catalog_node["Conteneur Catalogue"]
-            Catalog["Catalog Service<br/>Express.js - Port 3002"]
-        end
-        subgraph order_node["Conteneur Commandes"]
-            OrderSvc["Order Service<br/>Express.js - Port 3003"]
-        end
-        subgraph event_node["Conteneur Événements"]
-            EventSvc["Event Service<br/>Express.js - Port 3004"]
-        end
-        subgraph ai_node["Conteneur IA"]
-            AI["AI Service<br/>FastAPI - Port 8000"]
-        end
+    subgraph "Serveur d'Application (Node.js & Python)"
+        Gateway["API Gateway\n(Express / Socket.IO)\nPort: 3000"]
+        
+        Auth["Auth Service\n(Express)\nPort: 3001"]
+        Catalog["Catalog Service\n(Express)\nPort: 3002"]
+        Order["Order Service\n(Express)\nPort: 3003"]
+        Event["Event Service\n(Express)\nPort: 3004"]
+        
+        AI["AI Service\n(FastAPI / Python)\nPort: 8000"]
     end
 
-    subgraph db_server["Serveur Base de données"]
-        DB1[("PostgreSQL<br/>Auth DB")]
-        DB2[("PostgreSQL<br/>Catalog DB")]
-        DB3[("PostgreSQL<br/>Order DB")]
-        DB4[("PostgreSQL<br/>Event DB")]
-        DB5[("ChromaDB<br/>Vector Store")]
+    subgraph "Serveur de Bases de Données"
+        DB[("PostgreSQL\n(Multi-schemas)")]
+        VectorStore[("FAISS\n(Index Vectoriel)")]
     end
 
-    subgraph external["Services Externes"]
-        Cloud["Cloudinary<br/>Stockage images"]
-        Gemini["Google Gemini API<br/>LLM"]
-        Flouci["Flouci API<br/>Paiement en ligne"]
-        SMTP["Serveur SMTP<br/>Emails"]
+    subgraph "Services Externes (Cloud)"
+        Cloudinary[("Cloudinary\n(Images)")]
+        Flouci["API Flouci\n(Paiement en ligne)"]
+        Gemini["Google Gemini\n(LLM)"]
+        SMTP["Serveur SMTP\n(Emails)"]
     end
 
-    Browser -- "HTTPS" --> Frontend
-    Frontend -- "HTTP REST" --> Gateway
-    Gateway --> Auth
-    Gateway --> Catalog
-    Gateway --> OrderSvc
-    Gateway --> EventSvc
-    Gateway --> AI
+    ClientBrowser -->|HTTP/REST| Gateway
+    AdminBrowser -->|HTTP/REST| Gateway
+    
+    Gateway -->|HTTPinterne| Auth
+    Gateway -->|HTTPinterne| Catalog
+    Gateway -->|HTTPinterne| Order
+    Gateway -->|HTTPinterne| Event
+    Gateway -->|HTTPinterne| AI
 
-    Auth --> DB1
-    Catalog --> DB2
-    OrderSvc --> DB3
-    EventSvc --> DB4
-    AI --> DB5
+    Auth -->|Prisma| DB
+    Catalog -->|Prisma| DB
+    Order -->|Prisma| DB
+    Event -->|Prisma| DB
+    
+    AI -->|Lecture/Écriture| VectorStore
+    AI -->|Prisma| DB
 
-    Catalog --> Cloud
-    AI --> Gemini
-    OrderSvc --> Flouci
-    Auth --> SMTP
+    Catalog -->|Upload| Cloudinary
+    Order -->|Paiement| Flouci
+    AI -->|Prompts| Gemini
+    Auth -->|Mails| SMTP
+    Event -->|Devis PDF| SMTP

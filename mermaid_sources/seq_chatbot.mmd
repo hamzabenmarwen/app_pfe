@@ -1,39 +1,32 @@
 sequenceDiagram
-    actor Client
-    participant Frontend as Frontend React
+    actor User
+    participant Widget as ChatWidget
     participant Gateway as API Gateway
-    participant AI as AI Service (FastAPI)
-    participant Intent as Classificateur d'intention
-    participant HF as HuggingFace Embeddings
-    participant Chroma as ChromaDB
-    participant PG as PostgreSQL
-    participant Gemini as Google Gemini
+    participant AI as AI Service
+    participant JWT as JWT Verify
+    participant FAISS as FAISS Index
+    participant Gemini as Gemini 2.5 Flash
+    participant DB as PostgreSQL
 
-    Client->>Frontend: Envoie un message
-    Frontend->>Gateway: POST /api/chat
-    Note right of Frontend: {message, sessionId}
-    Gateway->>AI: Proxy requête
+    User->>Widget: Ouvre le widget
+    Widget->>Gateway: GET /api/chat/history/:userId
+    Gateway->>AI: Proxy + Authorization header
+    AI->>JWT: Vérifier le jeton
+    JWT-->>AI: Utilisateur valide
+    AI->>DB: Charger l'historique (paginé)
+    DB-->>AI: Messages page 1
+    AI-->>Gateway: Historique (200)
+    Gateway-->>Widget: Affichage des messages
 
-    AI->>Intent: Classifie l'intention du message
-    Intent-->>AI: Intent: MENU | COMMANDE | EVENEMENT | GENERAL
-
-    AI->>HF: Crée embedding du message
-    HF-->>AI: Vecteur 384 dimensions
-
-    AI->>Chroma: Recherche par similarité
-    Note right of Chroma: filtre par intent (métadonnées)
-    Chroma-->>AI: Top 5 documents pertinents
-
-    AI->>PG: Récupère données fraîches (prix, dispo)
-    PG-->>AI: Données actualisées
-
-    AI->>AI: Charge historique conversation (sessionId)
-    AI->>AI: Construit le prompt avec contexte RAG
-
-    AI->>Gemini: Envoie prompt + contexte + historique
-    Gemini-->>AI: Réponse générée en français
-
-    AI->>AI: Sauvegarde message + réponse dans l'historique
-    AI-->>Gateway: {response, sources[], intent}
-    Gateway-->>Frontend: 200 OK
-    Frontend-->>Client: Affiche la réponse du chatbot
+    User->>Widget: Pose une question
+    Widget->>Gateway: POST /api/chat/message
+    Gateway->>AI: Proxy + body
+    AI->>AI: Classifier l'intention
+    AI->>FAISS: Recherche similarité (top-5)
+    FAISS-->>AI: Documents pertinents + scores
+    AI->>AI: Conversion distance → score
+    AI->>Gemini: Prompt contextuel
+    Gemini-->>AI: Réponse générée
+    AI->>DB: Sauvegarder le message
+    AI-->>Gateway: Réponse (200)
+    Gateway-->>Widget: Affichage de la réponse

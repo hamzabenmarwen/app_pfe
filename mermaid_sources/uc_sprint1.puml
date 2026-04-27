@@ -1,0 +1,50 @@
+﻿@startuml
+left to right direction
+skinparam linetype polyline
+skinparam usecase {
+  BackgroundColor #dce6f5
+  BorderColor #4472c4
+  ArrowColor #333333
+}
+skinparam actor {
+  BorderColor #4472c4
+}
+skinparam rectangle {
+  BorderColor #4472c4
+  BackgroundColor #ffffff
+}
+
+actor "Visiteur" as Visiteur
+actor "Client" as Client
+actor "Administrateur" as Admin
+
+rectangle "SystÃ¨me Assiette Gala - Sprint 1 : Authentification" {
+  usecase "S'inscrire" as UC1
+  usecase "Se connecter" as UC2
+  usecase "Se connecter via Google" as UC3
+  usecase "RÃ©initialiser mot\nde passe" as UC4
+  usecase "Modifier profil" as UC5
+  usecase "GÃ©rer adresses" as UC6
+  usecase "GÃ©rer les utilisateurs" as UC7
+  usecase "Activer / DÃ©sactiver\ncompte" as UC8
+  usecase "VÃ©rifier email" as UC9
+  usecase "Valider JWT" as UC10
+}
+
+Visiteur --> UC1
+Visiteur --> UC2
+Visiteur --> UC3
+Visiteur --> UC4
+
+Client --> UC5
+Client --> UC6
+
+Admin --> UC7
+Admin --> UC8
+
+UC1 ..> UC9 : <<include>>
+UC5 ..> UC10 : <<include>>
+UC6 ..> UC10 : <<include>>
+@enduml
+
+

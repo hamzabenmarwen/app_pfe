@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant Admin as Administrateur
+    participant Browser as Navigateur
+    participant Gateway as API Gateway
+    participant OrderSvc as Order Service
+    participant DB as PostgreSQL
+
+    Admin->>Browser: Sélectionne période (7j / 30j / 12m)
+    Browser->>Gateway: GET /api/orders/admin/stats?period=7d
+    Gateway->>OrderSvc: Forward request + JWT
+
+    OrderSvc->>DB: SELECT date, COUNT, SUM<br/>WHERE created_at >= now() - 7d<br/>GROUP BY date
+    DB-->>OrderSvc: Données par jour
+
+    OrderSvc->>DB: SELECT plat_name, COUNT, SUM<br/>GROUP BY plat_name<br/>ORDER BY count DESC
+    DB-->>OrderSvc: Top plats vendus
+
+    OrderSvc->>DB: SELECT status, COUNT<br/>GROUP BY status
+    DB-->>OrderSvc: Répartition par statut
+
+    OrderSvc->>DB: SELECT EXTRACT(HOUR), COUNT<br/>GROUP BY hour
+    DB-->>OrderSvc: Distribution horaire
+
+    OrderSvc-->>Gateway: { daily, topPlats, byStatus, byHour }
+    Gateway-->>Browser: 200 OK
+
+    Browser->>Admin: Mise à jour Recharts graphiques

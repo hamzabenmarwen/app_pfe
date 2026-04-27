@@ -27,6 +27,9 @@ import {
   SparklesIcon,
   ShieldCheckIcon,
   BellIcon,
+  CpuChipIcon,
+  BeakerIcon,
+  ChartBarSquareIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/auth.store';
 import { authService } from '@/services/auth.service';
@@ -52,19 +55,16 @@ const navigationSections: NavigationSection[] = [
     title: 'Vue globale',
     items: [
       { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-      { name: 'Statistiques', href: '/admin/stats', icon: ChartBarIcon },
+      { name: 'Commandes', href: '/admin/orders', icon: ShoppingBagIcon },
+      { name: 'Événements', href: '/admin/events', icon: CalendarIcon },
       { name: 'Calendrier', href: '/admin/calendar', icon: CalendarDaysIcon },
     ],
   },
   {
-    title: 'Administration',
+    title: 'Menu & Catalogue',
     items: [
       { name: 'Plats', href: '/admin/plats', icon: CakeIcon },
       { name: 'Catégories', href: '/admin/categories', icon: TagIcon },
-      { name: 'Commandes', href: '/admin/orders', icon: ShoppingBagIcon },
-      { name: 'Événements', href: '/admin/events', icon: CalendarIcon },
-      { name: 'Utilisateurs', href: '/admin/users', icon: UsersIcon },
-      { name: 'Paramètres', href: '/admin/settings', icon: CogIcon },
     ],
   },
   {
@@ -72,17 +72,17 @@ const navigationSections: NavigationSection[] = [
     items: [
       { name: 'Devis', href: '/admin/quotes', icon: DocumentTextIcon },
       { name: 'Factures', href: '/admin/documents/factures', icon: ClipboardDocumentListIcon },
-      { name: 'Bon de commande', href: '/admin/documents/purchase-orders', icon: ShoppingBagIcon },
+      { name: 'Bons de commande', href: '/admin/documents/purchase-orders', icon: ShoppingBagIcon },
       { name: 'Avoirs client', href: '/admin/documents/credit-notes', icon: ReceiptRefundIcon },
-      { name: 'AI Scanner', href: '/admin/documents/ai-scanner', icon: DocumentMagnifyingGlassIcon },
     ],
   },
   {
-    title: 'Stock',
+    title: 'Stock & Achats',
     items: [
       { name: 'Gestion du stock', href: '/admin/stock', icon: ArchiveBoxIcon },
       { name: 'Mouvements', href: '/admin/stock/movements', icon: ArrowsRightLeftIcon },
       { name: 'Inventaire', href: '/admin/stock/take', icon: ClipboardDocumentCheckIcon },
+      { name: 'Fournisseurs', href: '/admin/suppliers', icon: TruckIcon },
     ],
   },
   {
@@ -94,11 +94,23 @@ const navigationSections: NavigationSection[] = [
     ],
   },
   {
-    title: 'Achats et IA',
+    title: 'Statistiques & IA',
     items: [
-      { name: 'Fournisseurs', href: '/admin/suppliers', icon: TruckIcon },
-      { name: 'Report Generator', href: '/admin/reports/generator', icon: DocumentChartBarIcon },
-      { name: 'AI Report Generate', href: '/admin/reports/ai', icon: SparklesIcon },
+      { name: 'Statistiques', href: '/admin/stats', icon: ChartBarIcon },
+      { name: 'Planification', href: '/admin/forecasting', icon: SparklesIcon },
+      { name: 'Rapports', href: '/admin/reports/generator', icon: DocumentChartBarIcon },
+      { name: 'Rapport IA', href: '/admin/reports/ai', icon: SparklesIcon },
+      { name: 'Kitchen Intelligence', href: '/admin/kitchen', icon: CpuChipIcon },
+      { name: 'Optimiseur de Menu', href: '/admin/optimizer', icon: BeakerIcon },
+      { name: 'AI Scanner', href: '/admin/documents/ai-scanner', icon: DocumentMagnifyingGlassIcon },
+      { name: 'Evaluation Recommandeur', href: '/admin/recommender-eval', icon: ChartBarSquareIcon },
+    ],
+  },
+  {
+    title: 'Gestion',
+    items: [
+      { name: 'Utilisateurs', href: '/admin/users', icon: UsersIcon },
+      { name: 'Paramètres', href: '/admin/settings', icon: CogIcon },
     ],
   },
 ];
@@ -608,6 +620,10 @@ export default function AdminLayout() {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/admin') return 'Dashboard admin';
+    if (path.includes('/forecasting')) return 'Planification & Prévisions';
+    if (path.includes('/kitchen')) return 'Kitchen Intelligence';
+    if (path.includes('/optimizer')) return 'Optimiseur de Menu';
+    if (path.includes('/recommender-eval')) return 'Evaluation Recommandeur';
     if (path.includes('/orders')) return 'Commandes';
     if (path.includes('/events')) return 'Événements';
     if (path.includes('/quotes')) return 'Devis';

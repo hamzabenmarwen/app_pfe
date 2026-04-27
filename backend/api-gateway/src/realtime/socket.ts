@@ -62,7 +62,14 @@ export function initRealtime(server: HttpServer): SocketServer {
 export function emitRealtime(event: string, data: any, rooms: string[] = []): void {
   if (!io) return;
 
+  // Prevent accidental broadcast: empty rooms is a no-op, not broadcast-all
   if (rooms.length === 0) {
+    console.warn(`[emitRealtime] Attempted to emit "${event}" with no target rooms. Skipping.`);
+    return;
+  }
+
+  // Only broadcast to all if explicitly requested with '__broadcast_all__' room
+  if (rooms.length === 1 && rooms[0] === '__broadcast_all__') {
     io.emit(event, data);
     return;
   }

@@ -1,0 +1,387 @@
+﻿% ============================================================
+% CHAPITRE 3 (Sprint 1)
+% ============================================================
+\chapter{Sprint 1 : Gestion des utilisateurs}
+
+\section{Introduction}
+
+Dès l'entame du projet, ce premier cycle de développement s'est penché sur l'architecture de sécurité d'Assiette Gala. Il était indispensable d'isoler l'interface grand public de l'interface secrète d'administration. En s'appuyant sur les recommandations de M. Omar Daoud, nous avons créé une muraille virtuelle où chaque visiteur, client ou cuisinier dispose d'autorisations cloisonnées (JWT). Ce volet retrace la mise sur pied de ce rempart d'identité.
+
+% --------------------------------------------------
+\section{Backlog du sprint}
+
+Le tableau~\ref{tab:backlog_sprint1} reprend les user stories attribuées au sprint~1.
+
+\begin{table}[H]
+    \centering
+    \caption{Backlog du sprint 1}
+    \label{tab:backlog_sprint1}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{8cm}|c|}
+        \hline
+        \textbf{ID} & \textbf{User Story} & \textbf{Durée} \\
+        \hline
+        US-01 & En tant que visiteur, je souhaite créer un compte afin d'accéder aux fonctionnalités. & 5 \\
+        \hline
+        US-02 & En tant qu'utilisateur, je souhaite me connecter avec mes identifiants. & 3 \\
+        \hline
+        US-03 & En tant qu'utilisateur, je souhaite me connecter via Google OAuth. & 5 \\
+        \hline
+        US-04 & En tant qu'utilisateur, je souhaite réinitialiser mon mot de passe. & 3 \\
+        \hline
+        US-05 & En tant qu'utilisateur, je souhaite modifier mes informations personnelles. & 2 \\
+        \hline
+        US-06 & En tant qu'administrateur, je souhaite gérer les comptes utilisateurs. & 5 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Conception}
+
+\subsection{Diagramme de cas d'utilisation}
+
+Le diagramme de cas d'utilisation du sprint~1 (figure~\ref{fig:uc_sprint1}) détaille les interactions des acteurs avec le module d'authentification.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{uc_sprint1.png}
+    \caption{Diagramme de cas d'utilisation du sprint 1}
+    \label{fig:uc_sprint1}
+\end{figure}
+
+\subsection{Description textuelle des cas d'utilisation}
+
+\subsubsection{Cas d'utilisation : Inscription}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Inscription}
+    \label{tab:desc_inscription}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Inscription \\
+        \hline
+        \textbf{Acteur principal} & Visiteur \\
+        \hline
+        \textbf{Précondition} & Le visiteur n'est pas authentifié \\
+        \hline
+        \textbf{Postcondition} & Un compte utilisateur est créé avec le rôle CLIENT \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Le badaud navigue vers le portail de création de compte Gala
+            \item Le formulaire récolte ses coordonnées (téléphone, courriel, nom complet)
+            \item Le backend s'assure qu'aucun autre compte n'exploite cet email
+            \item Application du chiffrement Bcrypt sur le mot de passe brut
+            \item Injection du dossier dans la base de données puis émission d'un mail de blocage
+            \item Clic sur le jeton de libération reçu par messagerie
+            \item Le compte traiteur est opérationnel
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[3a.] Doublon du courriel : blocage direct sur l'interface
+            \item[2a.] Données partielles : impossibilité de valider l'action
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{Cas d'utilisation : Connexion}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Connexion}
+    \label{tab:desc_connexion}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Connexion \\
+        \hline
+        \textbf{Acteur principal} & Utilisateur (Client ou Administrateur) \\
+        \hline
+        \textbf{Précondition} & L'utilisateur possède un compte activé \\
+        \hline
+        \textbf{Postcondition} & L'utilisateur est authentifié et reçoit un jeton JWT \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Positionnement sur la mire d'identification
+            \item Frappe des clés d'accès personnelles
+            \item Interrogation de la base de données PostgreSQL
+            \item Comparaison mathématique avec l'empreinte bcrypt stockée
+            \item Délivrance d'un passeport temporaire (15 min) et d'un visa de fond (7 jours)
+            \item Orientation automatique vers l'espace de commande
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[3a.] Email fantôme : rejet muet (pour éviter les fuites d'info)
+            \item[4a.] Erreur de mot de passe : rejet explicite
+            \item[3b.] Email en attente de validation : consigne d'ouverture de messagerie
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{Cas d'utilisation : Réinitialisation du mot de passe}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Réinitialisation du mot de passe}
+    \label{tab:desc_reset_password}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Réinitialiser le mot de passe \\
+        \hline
+        \textbf{Acteur principal} & Utilisateur \\
+        \hline
+        \textbf{Précondition} & L'utilisateur possède un compte enregistré \\
+        \hline
+        \textbf{Postcondition} & Le mot de passe est remplacé par un nouveau mot de passe haché \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Appui sur l'alerte d'oubli de clés
+            \item Désignation de son adresse de secours
+            \item Forgeage d'un token aléatoire jetable
+            \item Livraison d'un lien encapsulé vers l'adresse indiquée
+            \item Activation du lien et proposition d'une nouvelle combinaison secrète
+            \item Le serveur écrase l'ancienne empreinte bcrypt par la nouvelle
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[4a.] Jetons obsolètes : obligation de recommencer la démarche
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Diagrammes de séquence}
+
+\subsubsection{Séquence : Inscription}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_inscription.png}
+    \caption{Diagramme de séquence : Inscription}
+    \label{fig:seq_inscription}
+\end{figure}
+
+\subsubsection{Séquence : Connexion}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_connexion.png}
+    \caption{Diagramme de séquence : Connexion}
+    \label{fig:seq_connexion}
+\end{figure}
+
+\subsubsection{Séquence : Réinitialisation du mot de passe}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_reset_password.png}
+    \caption{Diagramme de séquence : Réinitialisation du mot de passe}
+    \label{fig:seq_reset_password}
+\end{figure}
+
+\subsection{Diagramme de classes}
+
+Le diagramme de classes (figure~\ref{fig:class_sprint1}) modélise les entités manipulées par le service d'authentification. Le modèle central \texttt{User} comporte les attributs nécessaires à l'identification, la sécurité et la gestion du profil. L'entité \texttt{Address} associe une ou plusieurs adresses de livraison à chaque utilisateur.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{class_sprint1.png}
+    \caption{Diagramme de classes du service d'authentification}
+    \label{fig:class_sprint1}
+\end{figure}
+
+Le modèle \texttt{User} contient les attributs suivants :
+\begin{itemize}
+    \item \texttt{id} : identifiant unique (UUID généré automatiquement)
+    \item \texttt{firstName}, \texttt{lastName} : nom et prénom
+    \item \texttt{email} : adresse email (unique, indexée)
+    \item \texttt{password} : mot de passe haché (bcrypt, 10 rounds)
+    \item \texttt{phone} : numéro de téléphone (optionnel)
+    \item \texttt{role} : énumération (\texttt{CLIENT}, \texttt{ADMIN})
+    \item \texttt{isVerified} : indicateur de vérification de l'email
+    \item \texttt{googleId} : identifiant Google pour OAuth 2.0 (optionnel)
+    \item \texttt{avatar} : URL de la photo de profil (optionnel)
+    \item \texttt{resetToken}, \texttt{resetTokenExpiry} : jeton et date d'expiration pour la réinitialisation du mot de passe
+\end{itemize}
+
+Le modèle \texttt{Address} contient :
+\begin{itemize}
+    \item \texttt{id} : identifiant unique
+    \item \texttt{label} : libellé de l'adresse (ex. : <<~Domicile~>>, <<~Bureau~>>)
+    \item \texttt{street}, \texttt{city}, \texttt{postalCode} : composantes de l'adresse
+    \item \texttt{isDefault} : indicateur de l'adresse par défaut
+    \item \texttt{userId} : clé étrangère vers \texttt{User}
+\end{itemize}
+
+\subsection{Diagramme d'états-transitions}
+
+Le diagramme d'états-transitions (figure~\ref{fig:state_sprint1}) illustre le cycle de vie d'un compte utilisateur au sein de la plateforme Assiette Gala, depuis sa création jusqu'à sa suppression éventuelle.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{state_sprint1_user.png}
+    \caption{Diagramme d'états-transitions : Cycle de vie d'un utilisateur}
+    \label{fig:state_sprint1}
+\end{figure}
+
+% --------------------------------------------------
+\section{Réalisation}
+
+\subsection{Structure du service}
+
+Le microservice d'identité d'Assiette Gala obéit à un empilement en quatre strates :
+
+\begin{itemize}
+    \item \textbf{Portes d'entrée} (\texttt{auth.routes.ts}) : cartographie des chemins HTTP acceptés par le service.
+    \item \textbf{Écluses} (\texttt{auth.controller.ts}) : désossage de chaque requête, aiguillage vers la couche métier.
+    \item \textbf{Réacteur métier} (\texttt{auth.service.ts}) : contrôle des règles (hachage bcrypt, forgerie de jetons, envoi de courriels).
+    \item \textbf{Empreinte Prisma} (\texttt{schema.prisma}) : moulage des tables PostgreSQL.
+    \item \textbf{Vigiles} (middlewares) : interception du badge JWT avant toute opération sensible. Le middleware d'administration est autonome et vérifie lui-même le jeton si nécessaire.
+    \item \textbf{Boîte à outils commune} (\texttt{shared}) : package npm partagé entre tous les microservices, regroupant les utilitaires de facturation (génération des numéros de facture et de commande), les middlewares d'authentification et les gestionnaires d'erreurs.
+\end{itemize}
+
+\subsection{Points d'entrée de l'API}
+
+\begin{table}[H]
+    \centering
+    \caption{Endpoints REST du service d'authentification}
+    \label{tab:endpoints_auth}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|p{4.5cm}|p{5.5cm}|}
+        \hline
+        \textbf{Méthode} & \textbf{Route} & \textbf{Description} \\
+        \hline
+        POST & /api/auth/register & Inscription d'un nouvel utilisateur \\
+        \hline
+        POST & /api/auth/login & Connexion par identifiants \\
+        \hline
+        POST & /api/auth/google & Authentification via Google \\
+        \hline
+        POST & /api/auth/forgot-password & Demande de réinitialisation \\
+        \hline
+        POST & /api/auth/reset-password & Réinitialisation du mot de passe \\
+        \hline
+        GET & /api/auth/verify-email/:token & Vérification de l'email \\
+        \hline
+        POST & /api/auth/refresh-token & Rafraîchissement du jeton \\
+        \hline
+        GET & /api/auth/profile & Consultation du profil \\
+        \hline
+        PUT & /api/auth/profile & Modification du profil \\
+        \hline
+        GET & /api/auth/addresses & Liste des adresses \\
+        \hline
+        POST & /api/auth/addresses & Ajout d'une adresse \\
+        \hline
+        PUT & /api/auth/addresses/:id & Modification d'une adresse \\
+        \hline
+        DELETE & /api/auth/addresses/:id & Suppression d'une adresse \\
+        \hline
+        GET & /api/auth/admin/users & Liste des utilisateurs (administrateur) \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% Schéma de la base de données retiré : le diagramme de classes (figure~\ref{fig:class_sprint1}) suffit à modéliser la structure des données.
+
+
+\subsection{Mécanisme d'authentification JWT}
+
+Le dispositif d'identification du traiteur repose sur un tandem de laissez-passer numériques :
+
+\begin{enumerate}
+    \item Le \textbf{jeton éclair} (15 minutes) : glissé dans l'entête \texttt{Authorization: Bearer <token>}, il porte l'identité, le rôle et le courriel de l'utilisateur. Sa durée de vie volontairement courte limite la casse si un pirate l'intercepte.
+
+    \item Le \textbf{jeton de fond} (7 jours) : logé dans un cookie \texttt{HttpOnly} (donc invisible au JavaScript client), il sert uniquement à régénérer le précédent sans forcer le client à ressaisir son mot de passe.
+\end{enumerate}
+
+Ce mécanisme à double étage nous permet de conjuguer confort (pas de reconnexion intempestive) et défense (fenêtre d'exploitation d'un voleur réduite à un quart d'heure).
+
+\subsection{Middleware d'administration autonome}
+
+Le middleware d'administration (\texttt{adminMiddleware}) a été conçu pour être \textbf{autonome} : il vérifie lui-même la validité du jeton JWT si l'utilisateur n'a pas encore été authentifié par le middleware précédent. Cette conception défensive garantit que les routes réservées aux administrateurs restent protégées même si le middleware d'authentification est accidentellement omis de la chaîne de middlewares.
+
+\subsection{Persistance de session côté client}
+
+Les sessions utilisateur sont persistées dans le \texttt{localStorage} du navigateur plutôt que dans le \texttt{sessionStorage}. Ce choix permet à l'utilisateur de retrouver sa session active après la fermeture et la réouverture du navigateur, améliorant significativement le confort d'usage sans compromettre la sécurité (le jeton d'accès reste éphémère et est renouvelé via le refresh token).
+
+\subsection{Interfaces réalisées}
+
+\subsubsection{Page de connexion}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le portail propose deux voies d'accès : un formulaire classique (courriel + mot de passe) et un raccourci Google OAuth 2.0. Un lien discret dirige les têtes en l'air vers le procédé de récupération de clés.
+
+\subsubsection{Page d'inscription}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le formulaire de bienvenue récolte le minimum vital : identité, courriel, numéro de téléphone et mot de passe. Les règles de validation (format de l'adresse, longueur du mot de passe) s'exécutent en temps réel dans le navigateur, puis de nouveau sur le serveur pour parer toute manipulation.
+
+\subsubsection{Page de profil}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+L'espace privé du client regroupe ses données personnelles et ses adresses de livraison. Une étoile jaune signale l'adresse favorite, utilisée par défaut au moment de la validation du panier.
+
+\subsubsection{Gestion des utilisateurs (Administrateur)}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le panneau réservé à M. Daoud dresse l'annuaire complet des inscrits, avec barre de recherche par nom ou courriel. Un clic sur une ligne ouvre la fiche détaillée du compte, où l'administrateur peut geler ou réactiver l'accès.
+
+% --------------------------------------------------
+\section{Tests fonctionnels}
+
+\begin{table}[H]
+    \centering
+    \caption{Tests fonctionnels : Sprint 1}
+    \label{tab:tests_sprint1}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{3cm}|p{3.5cm}|p{2.5cm}|}
+        \hline
+        \textbf{N°} & \textbf{Cas de test} & \textbf{Comportement attendu} & \textbf{Résultat} \\
+        \hline
+        1 & Inscription avec données valides & Compte créé, email de vérification envoyé & Réussi \\
+        \hline
+        2 & Inscription avec email existant & Message d'erreur <<~Email déjà utilisé~>> & Réussi \\
+        \hline
+        3 & Connexion avec identifiants corrects & Redirection vers l'espace utilisateur, jetons générés & Réussi \\
+        \hline
+        4 & Connexion avec mot de passe erroné & Message d'erreur <<~Identifiants incorrects~>> & Réussi \\
+        \hline
+        5 & Connexion via Google OAuth & Redirection Google, création ou connexion du compte & Réussi \\
+        \hline
+        6 & Réinitialisation du mot de passe & Email de réinitialisation envoyé, nouveau mot de passe accepté & Réussi \\
+        \hline
+        7 & Accès à une route protégée sans jeton & Réponse 401 Unauthorized & Réussi \\
+        \hline
+        8 & Rafraîchissement du jeton & Nouvel access token délivré & Réussi \\
+        \hline
+        9 & Modification du profil & Informations mises à jour en base & Réussi \\
+        \hline
+        10 & Gestion des adresses (CRUD) & Création, lecture, modification et suppression fonctionnelles & Réussi \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\begin{samepage}
+Cette première ascension de code a forgé le mécanisme de défense d'Assiette Gala. Nous refusons désormais le moindre intrus en protégeant les voies de communication via des clés éphémères et cryptées. L'inscription, le pont Google OAuth et la logistique des oublis de mots de passe sont tous fonctionnels. Notre socle bétonné par M. Mohammed Elleuch est maintenant fin prêt pour accueillir les modules marchands de l'entreprise.
+\end{samepage}
+

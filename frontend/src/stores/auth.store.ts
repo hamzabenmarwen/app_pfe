@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'assiette-gala-auth',
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

@@ -1,0 +1,340 @@
+﻿% ============================================================
+% CHAPITRE 5 (Sprint 3)
+% ============================================================
+\chapter{Sprint 3 : Événements et Commandes}
+
+\section{Introduction}
+
+Le Sprint 3 touche au cœur du réacteur financier du traiteur : la logistique des mariages, soutenances, fêtes d'entreprises et la vente directe. Ce volet démontre comment la plateforme s'émancipe d'une simple vitrine pour devenir un véritable bureau d'organisation et un outil de commande en ligne, capable de gérer des réceptions complexes et des achats quotidiens.
+
+% --------------------------------------------------
+\section{Backlog du sprint}
+
+\begin{table}[H]
+    \centering
+    \caption{Backlog du sprint 3 : Événements et Commandes}
+    \label{tab:backlog_sprint3}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{8cm}|c|}
+        \hline
+        \textbf{ID} & \textbf{User Story} & \textbf{Durée (jours)} \\
+        \hline
+        US-12 & En tant que client, je souhaite soumettre une demande d'événement sur mesure. & 4 \\
+        \hline
+        US-13 & En tant que client, je souhaite recevoir un devis pour mon événement. & 3 \\
+        \hline
+        US-14 & En tant qu'administrateur, je souhaite gérer les modèles et les demandes d'événements. & 4 \\
+        \hline
+        US-15 & En tant que client, je souhaite ajouter des plats à mon panier et passer commande. & 4 \\
+        \hline
+        US-16 & En tant que client, je souhaite suivre l'état de ma commande et télécharger ma facture. & 3 \\
+        \hline
+        US-17 & En tant qu'administrateur, je souhaite traiter les commandes clients. & 2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section{Conception}
+
+\subsection{Diagramme de cas d'utilisation}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{uc_sprint3.png}
+    \caption{Diagramme de cas d'utilisation du sprint 3}
+    \label{fig:uc_sprint3}
+\end{figure}
+
+\subsection{Description textuelle des cas d'utilisation}
+
+\subsubsection{Cas d'utilisation : Soumettre une demande d'événement}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Soumettre une demande d'événement}
+    \label{tab:desc_demande_event}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Soumettre une demande d'événement \\
+        \hline
+        \textbf{Acteur principal} & Client \\
+        \hline
+        \textbf{Précondition} & Le client est authentifié \\
+        \hline
+        \textbf{Postcondition} & La demande est créée avec le statut PENDING \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Le futur marié (ou l'organisateur) ouvre le module de planification
+            \item Spécification de la nature de la cérémonie (Fiançailles, Séminaire)
+            \item Paramétrage du nombre d'invités, de l'adresse de la salle et du jour J
+            \item Saisie des exigences particulières (ex: "Aucune viande rouge")
+            \item Sélection minutieuse de la composition du buffet
+            \item L'algorithme dresse une enveloppe budgétaire brute
+            \item Envoi du dossier complet à la direction
+            \item Cloche de notification chez l'administrateur
+        \end{enumerate} \\
+        \hline
+        \textbf{Scénario alternatif} &
+        \begin{itemize}
+            \item[3a.] Réservation dans le passé impossible : le calendrier grise ces jours
+            \item[3b.] Surcharge de la capacité maximale du traiteur : jauge bloquante
+        \end{itemize} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Description textuelle des cas d'utilisation}
+
+\subsubsection{Cas d'utilisation : Gérer les demandes d'événements}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Gérer les demandes d'événements}
+    \label{tab:desc_gerer_events}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Gérer les demandes d'événements \\
+        \hline
+        \textbf{Acteur principal} & Administrateur \\
+        \hline
+        \textbf{Précondition} & L'administrateur est authentifié \\
+        \hline
+        \textbf{Postcondition} & La demande est traitée (confirmée, annulée ou maintenue en attente) \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Interception du dossier de réception par le pôle administratif
+            \item Ouverture de la fiche détaillée du futur banquet
+            \item Audit de la jauge d'invités et des spécificités demandées
+            \item Surfacturation éventuelle (frais kilométriques, service à table)
+            \item Cachet final de l'entreprise : "Accepté" ou "Désolé, indisponible"
+        \end{enumerate} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Partie 2 : Gestion des Commandes et Panier}
+
+\subsection{Conception des commandes}
+
+\subsubsection{Cas d'utilisation : Passer une commande}
+
+\begin{table}[H]
+    \centering
+    \caption{Description textuelle : Passer une commande}
+    \label{tab:desc_passer_commande}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{4cm}|p{8.5cm}|}
+        \hline
+        \textbf{Cas d'utilisation} & Passer une commande \\
+        \hline
+        \textbf{Acteur principal} & Client \\
+        \hline
+        \textbf{Précondition} & Le client est authentifié et son panier contient au moins un plat \\
+        \hline
+        \textbf{Postcondition} & La commande est créée avec le statut PENDING \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item L'appétit aiguisé, l'acheteur clique sur l'icône de sa besace (panier)
+            \item Présentation d'un bref ticket reprenant les repas et la TVA
+            \item Renseignement de l'adresse de livraison (domicile ou travail)
+            \item Indication de la volonté d'être livré ou de récupérer sur place
+            \item Le bouton de validation déclenche l'envoi vers le backend
+            \item PostgreSQL réceptionne et fige le dossier en statut "En attente"
+            \item Affichage d'un reçu d'écran avec l'exigence du montant en espèce
+        \end{enumerate} \\
+        \hline
+        \textbf{Précondition} & Le client est authentifié et a des articles dans son panier \\
+        \hline
+        \textbf{Postcondition} & La commande est enregistrée avec le statut PENDING \\
+        \hline
+        \textbf{Scénario principal} &
+        \begin{enumerate}
+            \item Le client valide son panier virtuel
+            \item Sélection du mode de livraison (Sur place ou Domicile)
+            \item Saisie de l'adresse de livraison le cas échéant
+            \item Confirmation du paiement en espèces à la livraison
+            \item Enregistrement en base de données et vidage du panier
+        \end{enumerate} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Diagrammes de séquence}
+
+\subsubsection{Passage d'une commande}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_commande_paiement.png}
+    \caption{Diagramme de séquence : Passage d'une commande avec paiement}
+    \label{fig:seq_commande}
+\end{figure}
+
+\subsubsection{Soumission d'une demande d'événement}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_demande_event.png}
+    \caption{Diagramme de séquence : Soumission d'une demande d'événement}
+    \label{fig:seq_demande_event}
+\end{figure}
+
+\subsubsection{Traitement d'un événement par l'administrateur}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{seq_traitement_event.png}
+    \caption{Diagramme de séquence : Traitement d'un événement}
+    \label{fig:seq_traitement_event}
+\end{figure}
+
+\subsection{Diagramme de classes}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{class_sprint3.png}
+    \caption{Diagramme de classes du sprint 3 : Commandes et Événements}
+    \label{fig:class_sprint3}
+\end{figure}
+
+\subsection{Diagramme d'états-transitions}
+
+\subsubsection{Cycle de vie d'une commande}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{state_sprint3_order.png}
+    \caption{Diagramme d'états-transitions : Commande}
+    \label{fig:state_order}
+\end{figure}
+
+\subsubsection{Cycle de vie d'un événement}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{state_sprint3_event.png}
+    \caption{Diagramme d'états-transitions : Événement}
+    \label{fig:state_event}
+\end{figure}
+% --------------------------------------------------
+\section{Réalisation}
+
+\subsection{Gestion du paiement en espèces}
+
+Dans le tissu commercial sfaxien, la grande majorité des transactions traiteur s'effectuent en liquide au moment de la réception du plateau. Nous avons donc bâti un circuit qui épouse cette habitude locale plutôt que de la contredire :
+
+\begin{enumerate}
+    \item \textbf{Dépôt de la demande :} l'acheteur finalise son panier en ligne ; la commande atterrit dans PostgreSQL avec l'étiquette \texttt{PENDING}.
+    \item \textbf{Acquittement par le gérant :} M. Daoud ouvre le panneau d'administration, vérifie la faisabilité (stock, disponibilité de la date) et bascule le dossier en \texttt{PROCESSING}.
+    \item \textbf{Règlement physique :} le livreur perçoit la liasse de billets au seuil du client.
+    \item \textbf{Clôture comptable :} un clic fait passer le statut à \texttt{COMPLETED}, verrouillant la traçabilité financière.
+\end{enumerate}
+
+Ce modèle supprime toute friction liée aux passerelles bancaires et élimine les commissions tierces, tout en conservant un audit trail complet dans la base de données.
+
+\subsection{Limitation de débit sur les commandes}
+
+Pour prévenir les abus (commandes massives automatisées, attaques par déni de service), un \textbf{limiteur de débit} (\texttt{express-rate-limit}) est appliqué sur la route de création de commandes. Ce mécanisme plafonne le nombre de commandes à 5 par minute par utilisateur (identifié par son jeton JWT ou son adresse IP), garantissant un usage raisonnable du service.
+
+\subsection{Jeton de service interne}
+
+Lorsque le service de commandes interroge le service de catalogue pour récupérer les informations d'un plat (prix, nom, disponibilité), il joint un \textbf{jeton de service interne} (\texttt{INTERNAL\_SERVICE\_TOKEN}) dans l'en-tête de la requête. Ce jeton permet au catalogue de vérifier que la requête provient d'un service de confiance, et non d'un acteur externe non autorisé.
+
+\subsection{Configuration dynamique des paramètres de commande}
+
+Plutôt que de coder en dur les frais de livraison, le taux de TVA et le montant minimum de commande dans le frontend, ces paramètres sont exposés via un endpoint \texttt{/api/orders/config}. Le frontend les récupère dynamiquement au chargement de la page de validation, ce qui permet à l'administrateur de modifier ces valeurs sans redéployer l'interface.
+
+\subsection{Génération centralisée des numéros de facture et de commande}
+
+Les fonctions de génération des numéros de facture (format \texttt{INV-YYYYMM-<hex>}) et de commande (format \texttt{ORD-YYMMDD-<hex>}) sont centralisées dans le package partagé \texttt{@traiteurpro/shared}. Cette déduplication garantit un format unique et cohérent entre le service de commandes et le service de paiement, éliminant le risque de divergence ou de doublon.
+
+\subsection{Génération de factures PDF}
+
+Chaque transaction validée peut donner lieu à une pièce comptable imprimable, forgée à la volée par le module \texttt{PDFKit}. Le document embarque :
+
+\begin{itemize}
+    \item Le cartouche Assiette Gala (logo, adresse Route Mahdia km 1, téléphone)
+    \item Les coordonnées de l'acheteur
+    \item La référence UUID et la date de captation
+    \item La ventilation détaillée (dénomination, quantité, prix HT, sous-total)
+    \item Le total TTC incluant la TVA à 19\,\%
+    \item La mention de l'état du règlement
+\end{itemize}
+
+Le fichier binaire est assemblé en mémoire vive puis projeté vers le navigateur avec l'entête \texttt{Content-Type: application/pdf}, déclenchant le téléchargement immédiat.
+
+\subsection{Interfaces réalisées}
+
+\subsubsection{Panier d'achat}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le panier récapitule la sélection du gourmand : chaque ligne dévoile la vignette du mets, son tarif unitaire et un compteur incrémentable. Le bas de page totalise la facture prévisionnelle, invitant l'acheteur à modifier ou élaguer avant de poursuivre.
+
+\subsubsection{Page de validation de commande}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Cet écran rassemble en un coup d'\oe{}il le résumé du panier, le choix de l'adresse de livraison et le mode de réception (livraison à domicile ou retrait Route Mahdia). Le total TTC en dinars tunisiens, calculé avec une TVA de 19\,\%, est mis en évidence.
+
+\subsubsection{Historique des commandes}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le journal personnel du client empile ses achats passés du plus récent au plus ancien : date, montant déboursé et pastille colorée (jaune = en attente, vert = livré, rouge = annulé). Un lien ouvre la fiche détaillée de chaque dossier.
+
+\subsubsection{Gestion des commandes (Administrateur)}
+
+% FIGURE UI REMOVED : Add screenshot later
+
+Le poste de contrôle de M. Daoud dresse un inventaire filtré par état. D'un clic, il fait progresser une commande de \texttt{PROCESSING} vers \texttt{COMPLETED}, et peut ouvrir le détail complet (coordonnées, plats, montant) de chaque opération.
+
+% --------------------------------------------------
+\section{Tests fonctionnels}
+
+\begin{table}[H]
+    \centering
+    \caption{Tests fonctionnels : Sprint 4}
+    \label{tab:tests_sprint4}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|c|p{3cm}|p{3.5cm}|p{2.5cm}|}
+        \hline
+        \textbf{N°} & \textbf{Cas de test} & \textbf{Comportement attendu} & \textbf{Résultat} \\
+        \hline
+        1 & Ajout d'un plat au panier & Plat ajouté, quantité et total mis à jour & Réussi \\
+        \hline
+        2 & Modification de la quantité dans le panier & Sous-total et total recalculés & Réussi \\
+        \hline
+        3 & Suppression d'un article du panier & Article retiré, total recalculé & Réussi \\
+        \hline
+        4 & Validation de la commande & Commande créée en base, statut PENDING & Réussi \\
+        \hline
+        5 & Paiement en espèces confirmé & Statut mis à jour à COMPLETED par l'administrateur & Réussi \\
+        \hline
+        6 & Annulation de commande & Statut mis à jour à CANCELLED, message affiché & Réussi \\
+        \hline
+        7 & Téléchargement de facture PDF & PDF généré contenant tous les détails & Réussi \\
+        \hline
+        8 & Consultation de l'historique & Liste des commandes avec statuts corrects & Réussi \\
+        \hline
+        9 & Mise à jour du statut par l'administrateur & Statut modifié en base et sur l'interface & Réussi \\
+        \hline
+        10 & Commande sans authentification & Redirection vers la page de connexion & Réussi \\
+        \hline
+    \end{tabular}
+\end{table}
+
+% --------------------------------------------------
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+\begin{samepage}
+À l'issue de cet acte de programmation, Assiette Gala jouit d'une caisse enregistreuse immatérielle connectée directement à sa cuisine. Le traitement du panier, calqué sur le comportement tunisien du "paiement à l'arrivée", garantit une conversion commerciale maximale car débarrassé de la friction des cartes bleues. Fort de cette ossature financière, le Sprint 5 peut s'atteler au tableau de bord analytique.
+\end{samepage}
+

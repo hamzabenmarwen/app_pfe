@@ -27,6 +27,17 @@ venv/
 
 # Reports / performance artifacts
 tests/performance/summary.json
+test_*.png
+
+# Generated documentation artifacts
+TECHNICAL_DOCUMENTATION*.html
+TECHNICAL_DOCUMENTATION*.pdf
+AI_Service_Documentation.html
+AI_Service_Documentation.pdf
+*.raw.html
+
+# PFE / rapport PDFs at repo root (source is LaTeX in rapport/)
+/*.pdf
 
 # OS / editor
 .DS_Store

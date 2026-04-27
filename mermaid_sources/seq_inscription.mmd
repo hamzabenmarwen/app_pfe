@@ -1,20 +1,28 @@
 sequenceDiagram
-    actor Client
-    participant Frontend as Frontend React
+    actor Visiteur
+    participant UI as React Frontend
     participant Gateway as API Gateway
     participant Auth as Auth Service
     participant DB as PostgreSQL
+    participant Mail as SMTP Service
 
-    Client->>Frontend: Remplit formulaire (nom, email, mdp)
-    Frontend->>Gateway: POST /api/auth/register
-    Gateway->>Auth: Proxy requête
-    Auth->>Auth: Valide les données (Zod)
-    Auth->>DB: Vérifie email unique
-    DB-->>Auth: OK
-    Auth->>Auth: Hash mot de passe (bcrypt)
-    Auth->>DB: INSERT INTO users
-    DB-->>Auth: Utilisateur créé
-    Auth->>Auth: Génère Access + Refresh tokens (JWT)
-    Auth-->>Gateway: {accessToken, refreshToken, user}
-    Gateway-->>Frontend: 201 Created
-    Frontend-->>Client: Redirection vers le dashboard
+    Visiteur->>UI: Remplit le formulaire d'inscription
+    UI->>Gateway: POST /auth/register
+    Gateway->>Auth: Achemine la requête
+    Auth->>DB: Vérifie l'email (doublon ?)
+    alt Email existant
+        DB-->>Auth: Utilisateur trouvé
+        Auth-->>Gateway: 409 Conflict
+        Gateway-->>UI: Message d'erreur
+        UI-->>Visiteur: Affiche "Email déjà utilisé"
+    else Nouvel Email
+        Auth->>Auth: Bcrypt: hache le mot de passe
+        Auth->>DB: Crée l'utilisateur (isEmailVerified: false)
+        Auth->>Auth: Génère EmailVerificationToken
+        Auth->>DB: Sauvegarde le token
+        Auth->>Mail: Envoie l'email de vérification
+        Mail-->>Auth: OK
+        Auth-->>Gateway: 201 Created
+        Gateway-->>UI: Succès
+        UI-->>Visiteur: Affiche "Veuillez vérifier votre email"
+    end

@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant Admin as Administrateur
+    participant Browser as Navigateur
+    participant Gateway as API Gateway
+    participant OrderSvc as Order Service
+    participant EventSvc as Event Service
+    participant AuthSvc as Auth Service
+    participant DB as PostgreSQL
+
+    Admin->>Browser: Accède à /admin
+    Browser->>Gateway: GET /api/orders/stats/overview
+    Browser->>Gateway: GET /api/events/stats/overview
+    Browser->>Gateway: GET /api/auth/users?limit=5
+
+    par Statistiques commandes
+        Gateway->>OrderSvc: Forward request
+        OrderSvc->>DB: SELECT COUNT, SUM, AVG
+        DB-->>OrderSvc: Données agrégées
+        OrderSvc-->>Gateway: { totalOrders, revenue, avgOrder, ... }
+        Gateway-->>Browser: 200 OK
+    and Statistiques événements
+        Gateway->>EventSvc: Forward request
+        EventSvc->>DB: SELECT COUNT, GROUP BY status
+        DB-->>EventSvc: Données agrégées
+        EventSvc-->>Gateway: { totalEvents, quotes, conversion, ... }
+        Gateway-->>Browser: 200 OK
+    and Liste utilisateurs
+        Gateway->>AuthSvc: Forward request
+        AuthSvc->>DB: SELECT users ORDER BY created_at
+        DB-->>AuthSvc: Derniers utilisateurs
+        AuthSvc-->>Gateway: { users: [...] }
+        Gateway-->>Browser: 200 OK
+    end
+
+    Browser->>Admin: Affichage KPI cards + graphiques

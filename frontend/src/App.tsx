@@ -73,6 +73,10 @@ import {
   AdminAIScannerPage,
   AdminReportGeneratorPage,
   AdminAIReportPage,
+  AdminForecastingPage,
+  AdminKitchenPage,
+  AdminOptimizerPage,
+  AdminRecommenderEvalPage,
 } from '@/pages';
 
 const queryClient = new QueryClient({
@@ -199,6 +203,22 @@ function App() {
               <Route
                 path="/admin/reports/ai"
                 element={<AdminAIReportPage />}
+              />
+              <Route
+                path="/admin/forecasting"
+                element={<AdminForecastingPage />}
+              />
+              <Route
+                path="/admin/kitchen"
+                element={<AdminKitchenPage />}
+              />
+              <Route
+                path="/admin/optimizer"
+                element={<AdminOptimizerPage />}
+              />
+              <Route
+                path="/admin/recommender-eval"
+                element={<AdminRecommenderEvalPage />}
               />
             </Route>
           </Route>

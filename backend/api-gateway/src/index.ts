@@ -131,8 +131,6 @@ app.use(notFoundHandler);
 // Global error handling (must be last)
 app.use(errorHandler);
 
-initRealtime(server);
-
 server.listen(PORT, () => {
   console.log(`🚀 API Gateway running on http://localhost:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -140,3 +138,23 @@ server.listen(PORT, () => {
   console.log(`📝 Audit logging enabled`);
   console.log(`🆔 Request tracing enabled`);
 });
+
+initRealtime(server);
+
+// Graceful shutdown
+function gracefulShutdown(signal: string) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+
+  // Force shutdown after 30s if graceful shutdown fails
+  setTimeout(() => {
+    console.error('Forced shutdown due to timeout');
+    process.exit(1);
+  }, 30000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -520,6 +520,211 @@ async function main() {
 
   console.log('✅ Created sample ingredients');
 
+  // Create suppliers
+  const suppliers = await Promise.all([
+    prisma.supplier.upsert({
+      where: { name: 'Primeur du Centre' },
+      update: {},
+      create: {
+        name: 'Primeur du Centre',
+        contactName: 'Ahmed Ben Salah',
+        email: 'contact@primeurcentre.tn',
+        phone: '+21674234567',
+        address: 'Marché central, Sfax',
+        leadTimeDays: 1,
+        paymentTerms: 'Net 30',
+      },
+    }),
+    prisma.supplier.upsert({
+      where: { name: 'Boucherie Moderne' },
+      update: {},
+      create: {
+        name: 'Boucherie Moderne',
+        contactName: 'Ridha Gafsi',
+        email: 'commandes@boucherie.tn',
+        phone: '+21673234567',
+        address: 'Route de Gabès km 3, Sfax',
+        leadTimeDays: 1,
+        paymentTerms: 'Net 15',
+      },
+    }),
+    prisma.supplier.upsert({
+      where: { name: 'Poissonnerie Kerkennah' },
+      update: {},
+      create: {
+        name: 'Poissonnerie Kerkennah',
+        contactName: 'Khaled Mrabet',
+        email: 'kerkennah@poisson.tn',
+        phone: '+21672234567',
+        address: 'Port de pêche, Sfax',
+        leadTimeDays: 0,
+        paymentTerms: 'Cash on delivery',
+      },
+    }),
+    prisma.supplier.upsert({
+      where: { name: 'Épicerie Fine Sfax' },
+      update: {},
+      create: {
+        name: 'Épicerie Fine Sfax',
+        contactName: 'Samia Jaziri',
+        email: 'epicerie@sfax.tn',
+        phone: '+21671234567',
+        address: 'Avenue Habib Bourguiba, Sfax',
+        leadTimeDays: 2,
+        paymentTerms: 'Net 30',
+      },
+    }),
+    prisma.supplier.upsert({
+      where: { name: 'Laiterie Centrale' },
+      update: {},
+      create: {
+        name: 'Laiterie Centrale',
+        contactName: 'Fatma Driss',
+        email: 'lait@coop.tn',
+        phone: '+21669234567',
+        address: 'Zone agricole, Sfax',
+        leadTimeDays: 1,
+        paymentTerms: 'Net 15',
+      },
+    }),
+  ]);
+
+  console.log(`✅ Created ${suppliers.length} suppliers`);
+
+  // Link some ingredients to suppliers
+  const primeur = suppliers.find(s => s.name === 'Primeur du Centre')!;
+  const boucherie = suppliers.find(s => s.name === 'Boucherie Moderne')!;
+  const laiterie = suppliers.find(s => s.name === 'Laiterie Centrale')!;
+
+  const tomate = await prisma.ingredient.findFirst({ where: { name: 'Tomates' } });
+  const agneau = await prisma.ingredient.findFirst({ where: { name: 'Agneau' } });
+  const beurre = await prisma.ingredient.findFirst({ where: { name: 'Beurre' } });
+
+  if (tomate) await prisma.ingredient.update({ where: { id: tomate.id }, data: { supplierId: primeur.id } });
+  if (agneau) await prisma.ingredient.update({ where: { id: agneau.id }, data: { supplierId: boucherie.id } });
+  if (beurre) await prisma.ingredient.update({ where: { id: beurre.id }, data: { supplierId: laiterie.id } });
+
+  console.log('✅ Linked ingredients to suppliers');
+
+  // Create plat-ingredient recipe links (for stock management)
+  const couscousRoyal = await prisma.plat.findFirst({ where: { name: 'Couscous royal' } });
+  const semoule = await prisma.ingredient.findFirst({ where: { name: 'Semoule moyenne' } });
+  const agneauIng = await prisma.ingredient.findFirst({ where: { name: 'Agneau' } });
+  const poulet = await prisma.ingredient.findFirst({ where: { name: 'Poulet' } });
+  const oignons = await prisma.ingredient.findFirst({ where: { name: 'Oignons' } });
+  const risotto = await prisma.plat.findFirst({ where: { name: 'Risotto aux champignons' } });
+  const riz = await prisma.ingredient.findFirst({ where: { name: 'Riz arborio' } });
+  const creme = await prisma.ingredient.findFirst({ where: { name: 'Crème fraîche' } });
+  const tajine = await prisma.plat.findFirst({ where: { name: 'Tajine d\'agneau' } });
+  const cumin = await prisma.ingredient.findFirst({ where: { name: 'Cumin' } });
+
+  if (couscousRoyal && semoule) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: couscousRoyal.id, ingredientId: semoule.id } },
+      update: {},
+      create: { platId: couscousRoyal.id, ingredientId: semoule.id, quantityPerPlat: 0.2 },
+    });
+  }
+  if (couscousRoyal && agneauIng) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: couscousRoyal.id, ingredientId: agneauIng.id } },
+      update: {},
+      create: { platId: couscousRoyal.id, ingredientId: agneauIng.id, quantityPerPlat: 0.15 },
+    });
+  }
+  if (couscousRoyal && poulet) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: couscousRoyal.id, ingredientId: poulet.id } },
+      update: {},
+      create: { platId: couscousRoyal.id, ingredientId: poulet.id, quantityPerPlat: 0.1 },
+    });
+  }
+  if (couscousRoyal && oignons) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: couscousRoyal.id, ingredientId: oignons.id } },
+      update: {},
+      create: { platId: couscousRoyal.id, ingredientId: oignons.id, quantityPerPlat: 0.1 },
+    });
+  }
+  if (risotto && riz) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: risotto.id, ingredientId: riz.id } },
+      update: {},
+      create: { platId: risotto.id, ingredientId: riz.id, quantityPerPlat: 0.15 },
+    });
+  }
+  if (risotto && creme) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: risotto.id, ingredientId: creme.id } },
+      update: {},
+      create: { platId: risotto.id, ingredientId: creme.id, quantityPerPlat: 0.05 },
+    });
+  }
+  if (tajine && agneauIng) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: tajine.id, ingredientId: agneauIng.id } },
+      update: {},
+      create: { platId: tajine.id, ingredientId: agneauIng.id, quantityPerPlat: 0.2 },
+    });
+  }
+  if (tajine && cumin) {
+    await prisma.platIngredient.upsert({
+      where: { platId_ingredientId: { platId: tajine.id, ingredientId: cumin.id } },
+      update: {},
+      create: { platId: tajine.id, ingredientId: cumin.id, quantityPerPlat: 0.01 },
+    });
+  }
+
+  console.log('✅ Created plat-ingredient recipe links');
+
+  // Create sample expenses
+  await Promise.all([
+    prisma.expense.create({
+      data: {
+        title: 'Commande légumes semaine',
+        category: 'Matières premières',
+        amount: 450.000,
+        expenseDate: new Date('2026-04-18'),
+        supplierName: 'Primeur du Centre',
+        paymentMethod: 'Virement',
+        status: 'APPROVED',
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Commande viandes semaine',
+        category: 'Matières premières',
+        amount: 820.000,
+        expenseDate: new Date('2026-04-18'),
+        supplierName: 'Boucherie Moderne',
+        paymentMethod: 'Chèque',
+        status: 'PAID',
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Électricité cuisine',
+        category: 'Charges fixes',
+        amount: 380.000,
+        expenseDate: new Date('2026-04-01'),
+        paymentMethod: 'Prélèvement',
+        status: 'PAID',
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Produits d\'entretien',
+        category: 'Fournitures',
+        amount: 120.000,
+        expenseDate: new Date('2026-04-15'),
+        paymentMethod: 'Espèces',
+        status: 'DRAFT',
+      },
+    }),
+  ]);
+
+  console.log('✅ Created sample expenses');
+
   console.log('🎉 Seeding completed!');
 }
 

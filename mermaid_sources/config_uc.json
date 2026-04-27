@@ -5,15 +5,9 @@
     "primaryTextColor": "#000000",
     "primaryBorderColor": "#4472c4",
     "lineColor": "#333333",
-    "secondaryColor": "#e2efda",
-    "secondaryBorderColor": "#70ad47",
-    "tertiaryColor": "#f5f5f5",
-    "mainBkg": "#dce6f5",
-    "nodeBorder": "#4472c4",
-    "clusterBkg": "#ffffff",
-    "clusterBorder": "#333333",
-    "titleColor": "#000000",
-    "edgeLabelBackground": "#ffffff"
+    "secondaryColor": "#e8eef7",
+    "tertiaryColor": "#dce6f5",
+    "background": "#ffffff"
   },
   "flowchart": {
     "useMaxWidth": false,

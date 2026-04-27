@@ -1,49 +1,72 @@
 classDiagram
-    class ChatbotService {
-        - vectorStore: ChromaDB
-        - embedder: HuggingFaceEmbeddings
-        - llm: GoogleGemini
+    direction TB
+
+    class AIService {
+        <<FastAPI Service>>
+        +chat(query, userId) ChatResponse
+        +getRecommendations(userId) Plat[]
+        +runForecasting(daysAhead) ForecastReport
+        +optimizeKitchen(orders) Schedule
+        +scanReceipt(image) InvoiceData
     }
 
-    class RecommenderService {
-        - dbService: DatabaseService
+    class Chatbot {
+        <<RAG Engine>>
+        -llm : GoogleGemini
+        -embeddings : HuggingFace
+        -vectorStore : FAISS
+        +classifyIntent(query) Intent
+        +retrieveContext(query, k) Document[]
+        +generateResponse(context, query) String
+        +refreshKnowledge() void
     }
 
-    class DatabaseService {
-        - connection: PostgreSQL
+    class RecommendationEngine {
+        <<ML Module>>
+        -cooccurrenceMatrix : Matrix
+        +buildMatrix(orderHistory) void
+        +getRecommendations(userId, n) Plat[]
+        +computeSimilarity(platA, platB) Float
     }
 
-    class ChromaDB {
-        - collection: Collection
+    class ForecastingEngine {
+        <<ML Module>>
+        -alpha : Float
+        -seasonalCoefficients : Float[]
+        +trainModel(historicalData) void
+        +predict(daysAhead) ForecastReport
+        +decomposeIngredients(plats) IngredientReport
     }
 
-    class GoogleGemini {
-        - apiKey: String
-        - model: String
+    class KitchenOptimizer {
+        <<Optimization Module>>
+        +parseOrders(orders) Task[]
+        +computeCriticalPath(tasks) Schedule
+        +assignWorkstations(tasks) GanttChart
+        +calculateMakespan() Duration
     }
 
-    class HuggingFaceEmbeddings {
-        - modelName: String
-        - dimensions: Int
+    class OCREngine {
+        <<Vision Module>>
+        -model : GeminiVision
+        +processImage(image) Text
+        +extractStructuredData(text) InvoiceData
+        +validateExtraction(data) Boolean
     }
 
-    class ConversationHistory {
-        - sessionId: String
-        - messages: Message[]
+    class VectorStore {
+        <<FAISS Index>>
+        -index : Float32
+        -metadata : Json
+        +addDocuments(docs) void
+        +similaritySearch(vector, k) Document[]
+        +deleteIndex() void
+        +rebuildIndex() void
     }
 
-    class IntentType {
-        <<enumeration>>
-        MENU
-        COMMANDE
-        EVENEMENT
-        GENERAL
-    }
-
-    ChatbotService --> ChromaDB : Rechercher
-    ChatbotService --> GoogleGemini : Generer
-    ChatbotService --> HuggingFaceEmbeddings : Encoder
-    ChatbotService --> ConversationHistory : Gerer
-    ChatbotService --> DatabaseService : Consulter
-    ChatbotService --> IntentType : Classifier
-    RecommenderService --> DatabaseService : Recuperer
+    AIService "1" --> "1" Chatbot : utilise
+    AIService "1" --> "1" RecommendationEngine : utilise
+    AIService "1" --> "1" ForecastingEngine : utilise
+    AIService "1" --> "1" KitchenOptimizer : utilise
+    AIService "1" --> "1" OCREngine : utilise
+    Chatbot "1" --> "1" VectorStore : interroge

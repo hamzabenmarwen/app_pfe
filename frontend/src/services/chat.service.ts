@@ -30,7 +30,8 @@ const chatService = {
    * Get conversation history for a user
    */
   async getHistory(userId: string): Promise<ChatHistory> {
-    const { data } = await api.get(`/chat/history/${userId}`);
+    const { data } = await api.get(`/chat/history/${userId}`, { validateStatus: (s) => s < 500 });
+    if ((data as any)?.detail) return { userId, messages: [], totalMessages: 0 };
     return data;
   },
 

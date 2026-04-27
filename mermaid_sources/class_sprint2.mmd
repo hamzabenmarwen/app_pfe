@@ -1,35 +1,102 @@
 classDiagram
-    class Plat {
-        - id: String
-        - nom: String
-        - description: String
-        - prix: Decimal
-        - categoryId: String
-        - imageUrl: String
-        - isAvailable: Boolean
-        - preparationTime: Int
-        - createdAt: DateTime
-        - updatedAt: DateTime
-    }
+    direction TB
 
     class Category {
-        - id: String
-        - nom: String
-        - description: String
-        - createdAt: DateTime
+        -id : String
+        -name : String
+        -description : String
+        -imageUrl : String
+        -displayOrder : Int
+        -isActive : Boolean
+        +create(data) Category
+        +update(data) void
+        +getPlats() Plat[]
+    }
+
+    class Plat {
+        -id : String
+        -name : String
+        -description : String
+        -price : Decimal
+        -images : String[]
+        -preparationTime : Int
+        -isAvailable : Boolean
+        -spiceLevel : Int
+        -calories : Int
+        +create(data) Plat
+        +updatePrice(price) void
+        +toggleAvailability() void
+        +checkStock() Boolean
     }
 
     class Allergen {
-        - id: String
-        - nom: String
-        - createdAt: DateTime
+        -id : String
+        -name : String
+        -icon : String
     }
 
-    class PlatAllergen {
-        - platId: String
-        - allergenId: String
+    class IngredientCategory {
+        -id : String
+        -name : String
     }
 
-    Plat "*" --> "1" Category : Appartenir
-    Plat "1" --> "*" PlatAllergen : Avoir
-    Allergen "1" --> "*" PlatAllergen : Concerner
+    class Ingredient {
+        -id : String
+        -name : String
+        -unit : String
+        -quantity : Decimal
+        -minQuantity : Decimal
+        -lowStockThreshold : Decimal
+        -isLowStock : Boolean
+        -costPerUnit : Decimal
+        +updateQuantity(qty) void
+        +checkLowStock() Boolean
+        +reserve(qty) void
+    }
+
+    class Supplier {
+        -id : String
+        -name : String
+        -contactName : String
+        -email : String
+        -phone : String
+        -leadTimeDays : Int
+        +listIngredients() Ingredient[]
+    }
+
+    class PurchaseOrder {
+        -id : String
+        -poNumber : String
+        -status : PurchaseOrderStatus
+        -subtotal : Decimal
+        -expectedDate : DateTime
+        +addLine(ingredient, qty) void
+        +send() void
+        +markReceived() void
+        +cancel() void
+    }
+
+    class PurchaseOrderLine {
+        -ingredientId : String
+        -quantity : Decimal
+        -unitCost : Decimal
+        -lineTotal : Decimal
+    }
+
+    class PurchaseOrderStatus {
+        <<enumeration>>
+        DRAFT
+        SENT
+        RECEIVED
+        CANCELLED
+    }
+
+    Category "1" *-- "*" Plat : contient
+    Plat "*" -- "*" Allergen : contient
+    Plat "*" -- "*" Ingredient : composé de
+    IngredientCategory "1" o-- "*" Ingredient : catégorise
+    Supplier "1" o-- "*" Ingredient : fournit
+    Supplier "1" -- "*" PurchaseOrder : reçoit
+    PurchaseOrder "1" *-- "*" PurchaseOrderLine : contient
+    PurchaseOrderLine "*" --> "1" Ingredient : commande
+    PurchaseOrder --> PurchaseOrderStatus : a

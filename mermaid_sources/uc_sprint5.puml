@@ -1,0 +1,40 @@
+﻿@startuml
+left to right direction
+skinparam linetype polyline
+skinparam usecase {
+  BackgroundColor #dce6f5
+  BorderColor #4472c4
+  ArrowColor #333333
+}
+skinparam actor {
+  BorderColor #4472c4
+}
+skinparam rectangle {
+  BorderColor #4472c4
+  BackgroundColor #ffffff
+}
+
+actor "Client / Visiteur" as Client
+actor "Administrateur" as Admin
+actor "Chef Cuisinier" as Chef
+
+rectangle "SystÃ¨me Assiette Gala - Sprint 5 : Intelligence Artificielle" {
+  usecase "Interagir avec le\nchatbot RAG" as UC1
+  usecase "Recevoir des\nrecommandations" as UC2
+  usecase "Lancer le calcul\nprÃ©dictif (Forecasting)" as UC3
+  usecase "Planifier les tÃ¢ches\ncuisine (Optimizer)" as UC4
+  usecase "Scanner une facture\n(OCR IA)" as UC5
+  usecase "Recherche vectorielle\nFAISS" as UC6
+}
+
+Client --> UC1
+Client --> UC2
+
+Admin --> UC3
+Admin --> UC5
+
+Chef --> UC4
+
+UC1 ..> UC6 : <<include>>
+@enduml
+

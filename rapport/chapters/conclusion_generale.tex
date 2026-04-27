@@ -5,7 +5,7 @@
 \addcontentsline{toc}{chapter}{Conclusion générale}
 \markboth{Conclusion générale}{Conclusion générale}
 
-Ce projet de fin d'études a permis de concevoir et de mettre en œuvre une plateforme web destinée à la digitalisation des activités de \textbf{Assiette Gala Sfaxienne}. Les objectifs fixés en introduction ont été globalement atteints: sécurisation des accès, gestion du catalogue, traitement des commandes, prise en charge des événements et intégration d'une assistance intelligente.
+Ce projet de fin d'études a permis de concevoir et de mettre en œuvre une plateforme web destinée à la digitalisation des activités de \textbf{Assiette Gala Sfaxienne}. Les objectifs fixés en introduction ont été globalement atteints: sécurisation des accès, gestion du catalogue, traitement des commandes, prise en charge des événements, pilotage par les données et intégration d'une assistance intelligente.
 
 \section*{Bilan technique}
 
@@ -13,35 +13,40 @@ Sur le plan architectural, l'approche microservices, orchestrée par une API Gat
 
 Les technologies retenues ont répondu aux besoins du projet :
 \begin{itemize}
-    \item \textbf{Node.js/TypeScript} pour les services métier et la passerelle API.
-    \item \textbf{React/Vite} pour une interface utilisateur réactive et maintenable.
-    \item \textbf{Python/FastAPI} pour le module d'intelligence artificielle (chatbot et recommandations).
-    \item \textbf{PostgreSQL/Prisma} pour la persistance et la structuration des données.
+    \item \textbf{Node.js/TypeScript} pour les services métier (authentification, catalogue, commandes, événements) et la passerelle API.
+    \item \textbf{React/Vite} avec Tailwind CSS et Framer Motion pour une interface utilisateur réactive et professionnelle.
+    \item \textbf{Python/FastAPI} pour le module d'intelligence artificielle (chatbot RAG et recommandations), avec un index vectoriel FAISS pour la recherche de similarité.
+    \item \textbf{PostgreSQL/Prisma} pour la persistance et la structuration des données métier.
+    \item \textbf{Recharts} pour les visualisations graphiques du tableau de bord décisionnel.
 \end{itemize}
 
 \section*{Résultats obtenus}
 
-Le déroulement en sprints a permis de livrer des résultats concrets et progressifs :
+Le déroulement en cinq sprints a permis de livrer des résultats concrets et progressifs :
 \begin{enumerate}
-    \item Implémentation de l'authentification et de l'autorisation par rôles.
-    \item Mise en place d'un catalogue de plats administrable.
-    \item Gestion du cycle de commande, de paiement et de facturation.
-    \item Gestion des demandes d'événements et du workflow de devis.
-    \item Intégration d'un chatbot RAG et d'un module de recommandations.
+    \item \textbf{Sprint 1 (Gestion des utilisateurs)} : Infrastructure de sécurité avec JWT, Google OAuth 2.0, vérification par email et persistance de session.
+    \item \textbf{Sprint 2 (Catalogue et Logistique)} : Vitrine culinaire avec gestion des plats, des allergènes, du stockage d'images Cloudinary, ainsi que le suivi des stocks et des fournisseurs.
+    \item \textbf{Sprint 3 (Événements et Commandes)} : Tunnel de vente complet, panier d'achat, paiement à la livraison, et gestion des demandes de devis sur mesure pour les événements.
+    \item \textbf{Sprint 4 (Back-Office et Analytics)} : Tableau de bord décisionnel (Recharts), pilotage des flux financiers (caisse et dépenses), et génération des documents comptables légaux (factures PDF).
+    \item \textbf{Sprint 5 (Intelligence Artificielle)} : Intégration algorithmique de niveau Master avec un Chatbot RAG (FAISS/Gemini), un moteur de recommandation, l'IA Forecasting pour les stocks, le Kitchen Optimizer pour l'ordonnancement en cuisine, et l'AI Scanner (OCR) pour les factures.
 \end{enumerate}
+
+Les renforcements transverses incluent : limitation de débit (rate limiting), jeton de service interne pour les communications inter-services, Content-Security-Policy renforcée, arrêt gracieux des services (graceful shutdown), et centralisation des utilitaires dans le package partagé \texttt{@traiteurpro/shared}.
 
 \section*{Limites et perspectives}
 
 Malgré les résultats obtenus, certaines limites subsistent et ouvrent des axes d'amélioration :
 
 \begin{itemize}
-    \item Renforcement de l'observabilité (métriques, traces, journalisation centralisée).
-    \item Augmentation de la couverture de tests automatisés (unitaires, intégration, e2e).
-    \item Amélioration de la résilience inter-services (retries, circuit breaker).
-    \item Déploiement cloud industrialisé (CI/CD, conteneurisation, orchestration).
-    \item Extension fonctionnelle via application mobile et analytique avancée.
+    \item Renforcement de l'observabilité (métriques, traces distribuées, journalisation centralisée).
+    \item Augmentation de la couverture de tests automatisés (unitaires, intégration, end-to-end).
+    \item Amélioration de la résilience inter-services (retries, circuit breaker, files d'attente).
+    \item Déploiement cloud industrialisé (CI/CD, conteneurisation Docker, orchestration Kubernetes).
+    \item Extension fonctionnelle via une application mobile native et des analytiques prédictives avancées.
+    \item Intégration de passerelles de paiement en ligne supplémentaires (Flouci, D17) pour diversifier les modes de règlement.
 \end{itemize}
 
 \vspace{1cm}
 
-En synthèse, ce travail a permis de proposer une solution cohérente, évolutive et orientée métier, répondant aux besoins actuels de l'entreprise. Il constitue une base solide pour des évolutions futures, tant sur le plan fonctionnel que sur le plan technique.
+En synthèse, ce travail a permis de proposer une solution cohérente, évolutive et orientée métier, répondant aux besoins actuels de l'entreprise. La combinaison d'une architecture microservices rigoureuse, d'une intelligence artificielle contextuelle et de modules de gestion professionnels constitue une base solide pour des évolutions futures, tant sur le plan fonctionnel que sur le plan technique.
+

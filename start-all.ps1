@@ -46,7 +46,7 @@ Start-Sleep -Seconds 1
 Start-NodeService "Event Service" "$BasePath\backend\event-service" "3004"
 Start-Sleep -Seconds 1
 
-# AI service
+# AI service (includes chatbot + forecasting)
 Start-PythonService "AI Service" "$BasePath\backend\ai-service" "8000"
 Start-Sleep -Seconds 1
 

@@ -11,19 +11,21 @@ Au sein de \textbf{Assiette Gala Sfaxienne}, l'analyse de l'existant a mis en é
 
 La solution proposée repose sur une architecture \textbf{microservices} articulée autour d'une passerelle API. Les domaines fonctionnels principaux (authentification, catalogue, commandes, événements et intelligence artificielle) sont isolés en services spécialisés afin d'améliorer la maintenabilité, la scalabilité et l'évolutivité du système.
 
-Le projet intègre également un module d'intelligence artificielle fondé sur une approche \textbf{RAG} (Retrieval-Augmented Generation) pour assister les utilisateurs et fournir des réponses contextualisées à partir des données métier. Ce choix permet d'améliorer l'expérience utilisateur tout en conservant la cohérence des informations fournies.
+Le projet intègre également un module d'intelligence artificielle fondé sur une approche \textbf{RAG} (Retrieval-Augmented Generation) pour assister les utilisateurs et fournir des réponses contextualisées à partir des données métier. Ce choix permet d'améliorer l'expérience utilisateur tout en conservant la cohérence des informations fournies. Le stockage vectoriel repose sur \textbf{FAISS} (Facebook AI Similarity Search), garantissant une recherche de similarité performante et un déploiement simplifié sur Windows.
 
-La réalisation a été conduite selon la méthodologie \textbf{Scrum}, avec une planification en sprints et une validation progressive des fonctionnalités.
+La réalisation a été conduite selon la méthodologie \textbf{Scrum}, avec une planification en cinq sprints et une validation progressive des fonctionnalités.
 
 Le présent manuscrit est organisé comme suit:
 
 \begin{itemize}
-    \item Le \textbf{premier chapitre} ouvre ce recueil en présentant l'organisme d'accueil, l'examen sévère des logiciels du marché et les fondations architecturales (Microservices, IA) retenues.
-    \item Le \textbf{deuxième chapitre} illustre le Défi 1 (Sprint 1), centré sur le blindage de l'authentification et l'initialisation des bases de données de profils.
-    \item Le \textbf{troisième chapitre} s'attarde sur le Défi 2 (Sprint 2) en expliquant comment nous avons modélisé le catalogue culinaire en ligne.
-    \item Le \textbf{quatrième chapitre} décrit le Défi 3 (Sprint 3) et met en lumière le circuit de trésorerie, la facturation et l'état des commandes.
-    \item Le \textbf{cinquième chapitre} résume le Défi 4 (Sprint 4) consacré au pan événementiel et à la génération des offres sur devis.
-    \item Le \textbf{sixième chapitre} révèle le Défi 5 (Sprint 5), où l'intelligence artificielle Gemini est greffée au système via l'architecture RAG pour l'assistance client.
+    \item Le \textbf{premier chapitre} (Étude Préalable) ouvre ce recueil en présentant l'organisme d'accueil, l'examen des logiciels du marché, ainsi que le cadre méthodologique Scrum et la planification.
+    \item Le \textbf{deuxième chapitre} (Architecture) détaille les fondations techniques du projet, l'approche microservices et les choix technologiques retenus.
+    \item Le \textbf{troisième chapitre} décrit le Sprint~1, centré sur la gestion des utilisateurs et la sécurisation de l'authentification.
+    \item Le \textbf{quatrième chapitre} s'attarde sur le Sprint~2, consacré à la modélisation du catalogue culinaire et à la gestion de la logistique.
+    \item Le \textbf{cinquième chapitre} détaille le Sprint~3, mettant en lumière l'expérience client à travers la gestion des événements sur mesure et le circuit de commande.
+    \item Le \textbf{sixième chapitre} résume le Sprint~4, dédié au pilotage de l'entreprise via le Back-Office, l'analyse des KPI et la génération de documents comptables.
+    \item Le \textbf{septième chapitre} expose le Sprint~5, qui intègre la couche d'Intelligence Artificielle (chatbot RAG, prévisions de stock, optimisation en cuisine et reconnaissance OCR).
 \end{itemize}
 
 Une conclusion générale clôture ce rapport en synthétisant les résultats obtenus, les limites identifiées et les perspectives d'amélioration.
+

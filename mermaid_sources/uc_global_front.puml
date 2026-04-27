@@ -1,0 +1,42 @@
+﻿@startuml
+left to right direction
+skinparam linetype polyline
+skinparam usecase {
+  BackgroundColor #dce6f5
+  BorderColor #4472c4
+  ArrowColor #333333
+}
+skinparam actor {
+  BorderColor #4472c4
+}
+skinparam rectangle {
+  BorderColor #4472c4
+  BackgroundColor #ffffff
+}
+
+actor "Client / Visiteur" as Client
+
+rectangle "SystÃ¨me Assiette Gala - Front Office" {
+  usecase "CrÃ©er un compte" as UC1
+  usecase "S'authentifier" as UC2
+  usecase "Consulter le catalogue" as UC3
+  usecase "GÃ©rer le panier" as UC4
+  usecase "Passer une commande" as UC5
+  usecase "Suivre une commande" as UC6
+  usecase "Demander un devis\nd'Ã©vÃ©nement" as UC7
+  usecase "Interagir avec le\nChatbot IA" as UC8
+  usecase "Recevoir des\nrecommandations" as UC9
+}
+
+Client --> UC1
+Client --> UC2
+Client --> UC3
+Client --> UC4
+Client --> UC5
+Client --> UC6
+Client --> UC7
+Client --> UC8
+Client --> UC9
+@enduml
+
+

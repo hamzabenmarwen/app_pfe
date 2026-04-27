@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { MapPinIcon, BanknotesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useCartStore } from '@/stores/cart.store';
-import { orderService } from '@/services/order.service';
+import { orderService, getOrderConfig, type OrderConfig } from '@/services/order.service';
 import { paymentService } from '@/services/payment.service';
 import { Button, Input } from '@/components/ui';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, total, clearCart } = useCartStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderConfig, setOrderConfig] = useState<OrderConfig | null>(null);
 
   const {
     register,
@@ -32,14 +33,23 @@ export default function CheckoutPage() {
     },
   });
 
+  // Fetch order config from backend
+  React.useEffect(() => {
+    getOrderConfig()
+      .then((res) => setOrderConfig(res.data))
+      .catch(() => {
+        // Fallback defaults if config endpoint unavailable
+        setOrderConfig({ minLeadHours: 48, minAmount: 30, deliveryFee: 5, taxRate: 0.19 });
+      });
+  }, []);
+
   const subtotal = total();
-  const deliveryFee = items.length > 0 ? 5.0 : 0;
-  const tax = subtotal * 0.19;
+  const deliveryFee = orderConfig ? (items.length > 0 ? orderConfig.deliveryFee : 0) : 0;
+  const tax = subtotal * (orderConfig?.taxRate ?? 0.19);
   const totalAmount = subtotal + deliveryFee + tax;
 
-  // Professional catering: minimum 48h lead time
-  const MIN_LEAD_HOURS = 48;
-  const MIN_ORDER_AMOUNT = 30;
+  const MIN_LEAD_HOURS = orderConfig?.minLeadHours ?? 48;
+  const MIN_ORDER_AMOUNT = orderConfig?.minAmount ?? 30;
   const isBelowMinimum = subtotal < MIN_ORDER_AMOUNT;
 
   const getAutomaticDeliveryDate = () => {

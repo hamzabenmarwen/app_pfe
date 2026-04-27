@@ -1,50 +1,40 @@
 classDiagram
+    direction TB
+
+    class User {
+        -id : String
+        -email : String
+        -role : UserRole
+    }
+
+    class Plat {
+        -id : String
+        -name : String
+        -price : Decimal
+    }
+
     class Order {
-        - id: String
-        - userId: String
-        - orderNumber: String
-        - status: OrderStatus
-        - subtotal: Decimal
-        - deliveryFee: Decimal
-        - tax: Decimal
-        - totalAmount: Decimal
-        - deliveryAddress: Json
-        - deliveryDate: DateTime
-        - deliverySlot: String
-        - notes: String
-        - createdAt: DateTime
+        -id : String
+        -orderNumber : String
+        -status : OrderStatus
+        -subtotal : Decimal
+        -deliveryFee : Decimal
+        -tax : Decimal
+        -totalAmount : Decimal
+        -deliveryDate : DateTime
+        +create(items, address) Order
+        +confirm() void
+        +prepare() void
+        +deliver() void
+        +cancel() void
+        +generateInvoice() Invoice
     }
 
     class OrderItem {
-        - id: String
-        - orderId: String
-        - platId: String
-        - platName: String
-        - quantity: Int
-        - unitPrice: Decimal
-        - notes: String
-    }
-
-    class Invoice {
-        - id: String
-        - orderId: String
-        - invoiceNumber: String
-        - amount: Decimal
-        - taxAmount: Decimal
-        - pdfUrl: String
-        - sentAt: DateTime
-        - createdAt: DateTime
-    }
-
-    class Payment {
-        - id: String
-        - invoiceId: String
-        - amount: Decimal
-        - method: PaymentMethod
-        - status: PaymentStatus
-        - transactionRef: String
-        - paidAt: DateTime
-        - createdAt: DateTime
+        -id : String
+        -platName : String
+        -quantity : Int
+        -unitPrice : Decimal
     }
 
     class OrderStatus {
@@ -58,10 +48,29 @@ classDiagram
         CANCELLED
     }
 
+    class Invoice {
+        -id : String
+        -invoiceNumber : String
+        -amount : Decimal
+        -taxAmount : Decimal
+        -pdfUrl : String
+        +generatePDF() Blob
+        +send() void
+    }
+
+    class Payment {
+        -id : String
+        -amount : Decimal
+        -method : PaymentMethod
+        -status : PaymentStatus
+        +process() void
+        +refund() void
+    }
+
     class PaymentMethod {
         <<enumeration>>
-        CASH
         CARD
+        CASH
         FLOUCI
     }
 
@@ -73,9 +82,78 @@ classDiagram
         REFUNDED
     }
 
-    Order "1" --> "*" OrderItem : Contenir
-    Order "1" --> "0..1" Invoice : Generer
-    Invoice "1" --> "0..1" Payment : Associer
-    Order --> OrderStatus
-    Payment --> PaymentMethod
-    Payment --> PaymentStatus
+    class Event {
+        -id : String
+        -name : String
+        -eventType : EventType
+        -status : EventStatus
+        -eventDate : DateTime
+        -guestCount : Int
+        -budget : Decimal
+        +submitRequest() void
+        +confirm() void
+        +complete() void
+        +cancel() void
+    }
+
+    class EventMenuItem {
+        -id : String
+        -platName : String
+        -quantity : Int
+    }
+
+    class EventStatus {
+        <<enumeration>>
+        DRAFT
+        PENDING_QUOTE
+        QUOTE_SENT
+        CONFIRMED
+        COMPLETED
+        CANCELLED
+    }
+
+    class Quote {
+        -id : String
+        -quoteNumber : String
+        -status : QuoteStatus
+        -totalAmount : Decimal
+        -validUntil : DateTime
+        +generateQuote() void
+        +send() void
+        +accept() void
+        +reject() void
+    }
+
+    class QuoteItem {
+        -id : String
+        -name : String
+        -quantity : Int
+        -unitPrice : Decimal
+        -totalPrice : Decimal
+    }
+
+    class QuoteStatus {
+        <<enumeration>>
+        DRAFT
+        SENT
+        ACCEPTED
+        REJECTED
+        EXPIRED
+    }
+
+    User "1" -- "*" Order : passe
+    Order "1" *-- "*" OrderItem : contient
+    OrderItem "*" --> "1" Plat : référence
+    Order "1" *-- "0..1" Invoice : génère
+    Invoice "1" *-- "0..1" Payment : reçoit
+    Order --> OrderStatus : a
+    Payment --> PaymentMethod : utilise
+    Payment --> PaymentStatus : a
+
+    User "1" -- "*" Event : demande
+    Event "1" *-- "*" EventMenuItem : inclut
+    EventMenuItem "*" --> "1" Plat : référence
+    Event "1" -- "*" Quote : reçoit
+    Quote "1" *-- "*" QuoteItem : détaille
+    Event --> EventStatus : a
+    Quote --> QuoteStatus : a

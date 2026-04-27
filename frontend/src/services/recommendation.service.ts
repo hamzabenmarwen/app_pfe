@@ -1,11 +1,5 @@
 import api from '@/lib/api';
 
-const RETRY_DELAY_MS = 700;
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export interface PlatRecommendation {
   id: string;
   name: string;
@@ -47,28 +41,8 @@ const recommendationService = {
     dietary?: string;
     limit?: number;
   }): Promise<RecommendationsResponse> {
-    const maxAttempts = 3;
-    let lastError: unknown;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const { data } = await api.get('/recommendations/plats', { params });
-        return data;
-      } catch (error: any) {
-        lastError = error;
-        const status = error?.response?.status;
-        const isRetriable = status === 503 || status === 502 || !status;
-        const canRetry = attempt < maxAttempts;
-
-        if (!isRetriable || !canRetry) {
-          throw error;
-        }
-
-        await wait(RETRY_DELAY_MS * attempt);
-      }
-    }
-
-    throw lastError;
+    const { data } = await api.get('/recommendations/plats', { params });
+    return data;
   },
 
   /**

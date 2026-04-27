@@ -60,10 +60,13 @@ export default function ChatWidget() {
         content: response.reply,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       const errorMessage: ChatMessage = {
         role: 'assistant',
-        content: "Désolé, je rencontre un problème technique. Veuillez réessayer dans quelques instants.",
+        content: "Désolé, je rencontre un problème technique momentané. Veuillez réessayer dans quelques instants. 🙏",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {

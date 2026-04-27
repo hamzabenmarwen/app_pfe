@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import * as orderController from '../controllers/order.controller';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
@@ -29,12 +30,29 @@ const updateStatusSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'DELIVERED', 'CANCELLED']),
 });
 
+const createOrderRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return (req as any).user?.userId || req.ip || 'unknown';
+  },
+  handler: (_req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many order creation requests. Please try again later.',
+    });
+  },
+});
+
 // Require auth for all routes
 router.use(authMiddleware);
 
 // Client routes (static paths first)
-router.post('/', validateBody(createOrderSchema), orderController.createOrder);
+router.post('/', createOrderRateLimiter, validateBody(createOrderSchema), orderController.createOrder);
 router.get('/my-orders', orderController.getMyOrders);
+router.get('/config', orderController.getOrderConfig);
 
 // Admin routes (static paths)
 router.get('/', adminMiddleware, orderController.getAllOrders);

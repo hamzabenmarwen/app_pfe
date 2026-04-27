@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
-import crypto from 'crypto';
+import { generateInvoiceNumber } from '@traiteurpro/shared';
 
 async function applyOrderStatusAfterSuccessfulPayment(orderId: string, currentStatus: OrderStatus) {
   if (currentStatus === OrderStatus.CANCELLED) {
@@ -173,10 +173,3 @@ export async function refundPayment(orderId: string) {
   return { message: 'Refund initiated' };
 }
 
-function generateInvoiceNumber(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
-  return `INV-${year}${month}-${random}`;
-}

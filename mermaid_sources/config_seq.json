@@ -1,33 +1,32 @@
 {
   "theme": "base",
   "themeVariables": {
-    "primaryColor": "#ffffff",
+    "primaryColor": "#dce6f5",
     "primaryTextColor": "#000000",
-    "primaryBorderColor": "#000000",
-    "lineColor": "#000000",
-    "secondaryColor": "#ffffff",
-    "tertiaryColor": "#ffffff",
-    "actorBkg": "#ffffff",
-    "actorBorder": "#000000",
+    "primaryBorderColor": "#4472c4",
+    "lineColor": "#333333",
+    "actorBkg": "#dce6f5",
+    "actorBorder": "#4472c4",
     "actorTextColor": "#000000",
-    "actorLineColor": "#000000",
-    "activationBkgColor": "#ffffff",
-    "activationBorderColor": "#000000",
-    "sequenceNumberColor": "#000000",
-    "signalColor": "#000000",
+    "activationBorderColor": "#4472c4",
+    "activationBkgColor": "#e8eef7",
+    "signalColor": "#333333",
     "signalTextColor": "#000000",
-    "labelBoxBkgColor": "#ffffff",
-    "labelBoxBorderColor": "#000000",
-    "labelTextColor": "#000000",
     "loopTextColor": "#000000",
-    "noteBkgColor": "#f5f5f5",
-    "noteBorderColor": "#000000",
-    "noteTextColor": "#000000",
-    "altBackground": "#f5f5f5"
+    "noteBkgColor": "#fff5ad",
+    "noteBorderColor": "#aaaa33",
+    "background": "#ffffff"
   },
   "sequence": {
     "useMaxWidth": false,
-    "mirrorActors": false,
-    "messageAlign": "center"
+    "diagramMarginX": 20,
+    "diagramMarginY": 10,
+    "actorMargin": 50,
+    "width": 150,
+    "height": 65,
+    "boxMargin": 10,
+    "boxTextMargin": 5,
+    "noteMargin": 10,
+    "messageMargin": 35
   }
 }

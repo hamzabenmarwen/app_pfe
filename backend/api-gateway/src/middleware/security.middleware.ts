@@ -12,11 +12,11 @@ export function enhancedSecurityHeaders(
   // Content Security Policy
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self'",
-    "connect-src 'self'",
+    "connect-src 'self' https://developers.flouci.com",
     "media-src 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
@@ -64,8 +64,8 @@ export function validateCorsOrigin(
       return callback(null, true);
     }
     
-    // Check for wildcard or development origins
-    if (allowedOrigins.includes('*') || origin.includes('localhost')) {
+    // Check for wildcard
+    if (allowedOrigins.includes('*')) {
       return callback(null, true);
     }
     

@@ -13,7 +13,6 @@ function getServices(): ServiceConfig[] {
   const orderUrl = process.env.ORDER_SERVICE_URL || 'http://localhost:3003';
   const eventUrl = process.env.EVENT_SERVICE_URL || 'http://localhost:3004';
   const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
-
   return [
     { path: '/api/auth', target: authUrl, pathRewrite: { '^/api/auth': '/api' } },
     { path: '/api/users', target: authUrl },
@@ -33,6 +32,10 @@ function getServices(): ServiceConfig[] {
     { path: '/api/templates', target: eventUrl },
     { path: '/api/chat', target: aiUrl },
     { path: '/api/recommendations', target: aiUrl },
+    { path: '/api/forecast', target: aiUrl },
+    { path: '/api/chef', target: aiUrl },
+    { path: '/api/kitchen', target: aiUrl },
+    { path: '/api/optimizer', target: aiUrl },
   ];
 }
 

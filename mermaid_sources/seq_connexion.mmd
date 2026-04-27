@@ -1,26 +1,32 @@
 sequenceDiagram
-    actor Client
-    participant Frontend as Frontend React
+    actor Utilisateur
+    participant UI as React Frontend
     participant Gateway as API Gateway
     participant Auth as Auth Service
     participant DB as PostgreSQL
 
-    Client->>Frontend: Saisit email + mot de passe
-    Frontend->>Gateway: POST /api/auth/login
-    Gateway->>Auth: Proxy requête
-    Auth->>DB: SELECT user WHERE email
-    DB-->>Auth: Utilisateur trouvé
-    Auth->>Auth: Vérifie le hash (bcrypt.compare)
-    alt Mot de passe correct
-        Auth->>Auth: Génère Access Token (15min)
-        Auth->>Auth: Génère Refresh Token (7j)
-        Auth->>DB: Sauvegarde Refresh Token
-        Auth-->>Gateway: {accessToken, refreshToken, user}
-        Gateway-->>Frontend: 200 OK
-        Frontend->>Frontend: Stocke tokens (localStorage)
-        Frontend-->>Client: Redirection dashboard
-    else Mot de passe incorrect
-        Auth-->>Gateway: 401 Identifiants invalides
-        Gateway-->>Frontend: Erreur
-        Frontend-->>Client: Affiche message d'erreur
+    Utilisateur->>UI: Saisit email et mot de passe
+    UI->>Gateway: POST /auth/login
+    Gateway->>Auth: Achemine la requête
+    Auth->>DB: Recherche l'utilisateur par email
+    
+    alt Utilisateur non trouvé
+        DB-->>Auth: null
+        Auth-->>Gateway: 401 Unauthorized
+        Gateway-->>UI: Erreur
+        UI-->>Utilisateur: "Identifiants incorrects"
+    else Utilisateur trouvé
+        Auth->>Auth: Bcrypt: compare les mots de passe
+        alt Mot de passe incorrect
+            Auth-->>Gateway: 401 Unauthorized
+            Gateway-->>UI: Erreur
+            UI-->>Utilisateur: "Identifiants incorrects"
+        else Mot de passe correct
+            Auth->>Auth: Génère Access Token (JWT)
+            Auth->>Auth: Génère Refresh Token
+            Auth->>DB: Sauvegarde Refresh Token
+            Auth-->>Gateway: 200 OK + Tokens
+            Gateway-->>UI: Stocke les tokens en local/cookie
+            UI-->>Utilisateur: Redirection vers le tableau de bord
+        end
     end

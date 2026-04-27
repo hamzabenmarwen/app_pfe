@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { OrderStatus, PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
-import crypto from 'crypto';
+import { generateInvoiceNumber, generateOrderNumber } from '@traiteurpro/shared';
 
 const ORDER_MIN_LEAD_HOURS = Number(process.env.ORDER_MIN_LEAD_HOURS || 48);
 const ORDER_MIN_AMOUNT_DT = Number(process.env.ORDER_MIN_AMOUNT_DT || 30);
@@ -28,30 +28,18 @@ type CatalogStockReservationResponse = {
   error?: string;
 };
 
-// Generate unique order number using crypto for collision resistance
-function generateOrderNumber(): string {
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
-  return `ORD-${year}${month}${day}-${random}`;
-}
-
-function generateInvoiceNumber(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const random = crypto.randomBytes(3).toString('hex').toUpperCase();
-  return `INV-${year}${month}-${random}`;
-}
 
 async function fetchPlatSnapshot(platId: string): Promise<CatalogPlatSnapshot> {
   const catalogServiceUrl = process.env.CATALOG_SERVICE_URL || 'http://localhost:3002';
 
+  const headers: Record<string, string> = {};
+  if (CATALOG_INTERNAL_SERVICE_TOKEN) {
+    headers['x-internal-service-token'] = CATALOG_INTERNAL_SERVICE_TOKEN;
+  }
+
   let response: Response;
   try {
-    response = await fetch(`${catalogServiceUrl}/api/plats/${platId}`);
+    response = await fetch(`${catalogServiceUrl}/api/plats/${platId}`, { headers });
   } catch {
     throw new Error('Catalog service unavailable');
   }

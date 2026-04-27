@@ -4,7 +4,7 @@ import uuid
 import asyncio
 import logging
 import jwt
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Query
 from typing import Optional
 from models.schemas import ChatMessageRequest, ChatMessageResponse, ChatHistoryResponse
 from services.chatbot import chat, get_history, clear_history, build_vectorstore, get_retrieval_metrics
@@ -62,28 +62,45 @@ async def send_message(req: ChatMessageRequest, authorization: Optional[str] = H
 
 
 @router.get("/history/{user_id}", response_model=ChatHistoryResponse)
-async def get_chat_history(user_id: str, authorization: Optional[str] = Header(None)):
+async def get_chat_history(
+    user_id: str,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Messages per page"),
+    authorization: Optional[str] = Header(None),
+):
     """Get conversation history for a user. Requires the same user or admin."""
     caller_id = _extract_user_id_from_token(authorization)
-    if caller_id and caller_id != user_id:
-        # Non-admin trying to access another user's history
-        try:
-            _require_admin(authorization)
-        except HTTPException:
-            raise HTTPException(status_code=403, detail="Accès non autorisé")
-    messages = get_history(user_id)
-    return ChatHistoryResponse(messages=messages, userId=user_id)
+    if not caller_id:
+        raise HTTPException(status_code=401, detail="Authentification requise")
+    if caller_id != user_id:
+        _require_admin(authorization)
+
+    all_messages = get_history(user_id)
+    total = len(all_messages)
+
+    # Pagination
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = all_messages[start:end]
+
+    return ChatHistoryResponse(
+        messages=paginated,
+        userId=user_id,
+        total=total,
+        page=page,
+        limit=limit,
+        totalPages=(total + limit - 1) // limit if total > 0 else 1,
+    )
 
 
 @router.delete("/history/{user_id}")
 async def clear_chat_history(user_id: str, authorization: Optional[str] = Header(None)):
     """Clear conversation history for a user. Requires the same user or admin."""
     caller_id = _extract_user_id_from_token(authorization)
-    if caller_id and caller_id != user_id:
-        try:
-            _require_admin(authorization)
-        except HTTPException:
-            raise HTTPException(status_code=403, detail="Accès non autorisé")
+    if not caller_id:
+        raise HTTPException(status_code=401, detail="Authentification requise")
+    if caller_id != user_id:
+        _require_admin(authorization)
     clear_history(user_id)
     return {"message": "Historique supprimé", "userId": user_id}
 

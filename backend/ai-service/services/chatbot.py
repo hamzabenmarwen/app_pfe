@@ -1,12 +1,12 @@
-"""RAG Chatbot — LangChain + Google Gemini + ChromaDB persistent vector store.
+"""RAG Chatbot — LangChain + Google Gemini + FAISS persistent vector store.
 
 Architecture (v2):
-  1. Indexation: DB data -> Documents -> Chunking -> Embeddings -> ChromaDB (persistent)
+  1. Indexation: DB data -> Documents -> Chunking -> Embeddings -> FAISS (persistent)
   2. Query:     User question -> Intent Classification -> Metadata-Filtered Retrieval
                 -> Relevance Reranking -> LLM Generation -> Response
 
 Improvements over v1 (in-memory numpy):
-  - ChromaDB persistent vector store (survives restarts, scales to 100k+ docs)
+  - FAISS persistent vector store (survives restarts, scales to 100k+ docs)
   - Query intent classification (menu / event / allergen / general)
   - Metadata-filtered retrieval (category & intent aware search)
   - Cross-result reranking for top-k precision
@@ -23,12 +23,12 @@ from collections import OrderedDict
 from typing import Optional
 
 try:
-    import chromadb
-    CHROMADB_AVAILABLE = True
+    import faiss
+    FAISS_AVAILABLE = True
 except Exception:
-    chromadb = None  # type: ignore
-    CHROMADB_AVAILABLE = False
-    logging.getLogger(__name__).warning("ChromaDB unavailable — chatbot will use basic LLM without RAG")
+    faiss = None  # type: ignore
+    FAISS_AVAILABLE = False
+    logging.getLogger(__name__).warning("FAISS unavailable — chatbot will use basic LLM without RAG")
 import numpy as np
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -43,8 +43,7 @@ logger = logging.getLogger(__name__)
 
 MAX_CONVERSATIONS = 200
 MAX_HISTORY_PER_USER = 20
-CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chroma_db")
-COLLECTION_NAME = "assiette_gala_knowledge"
+FAISS_INDEX_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "faiss_db")
 
 # ──────────────────────────────────────────────
 # Thread-safe LRU conversation store
@@ -53,10 +52,9 @@ _conversations: OrderedDict[str, list[dict]] = OrderedDict()
 _conv_lock = threading.Lock()
 
 # ──────────────────────────────────────────────
-# ChromaDB client + collection (persistent)
+# FAISS vector store (persistent)
 # ──────────────────────────────────────────────
-_chroma_client = None
-_collection = None
+_faiss_vectorstore = None  # langchain FAISS wrapper
 _embeddings_model = None
 _vectorstore_ready = False
 
@@ -113,13 +111,32 @@ def _get_embeddings():
     return _embeddings_model
 
 
-def _get_chroma_client():
-    global _chroma_client
-    if _chroma_client is None:
-        os.makedirs(CHROMA_PERSIST_DIR, exist_ok=True)
-        _chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
-        logger.info(f"ChromaDB persistent client created at {CHROMA_PERSIST_DIR}")
-    return _chroma_client
+def _get_faiss_vectorstore():
+    """Get or lazily create the FAISS vectorstore."""
+    global _faiss_vectorstore
+    if _faiss_vectorstore is not None:
+        return _faiss_vectorstore
+
+    embeddings_model = _get_embeddings()
+    os.makedirs(FAISS_INDEX_DIR, exist_ok=True)
+
+    # Try loading from disk
+    index_path = os.path.join(FAISS_INDEX_DIR, "index.faiss")
+    pkl_path = os.path.join(FAISS_INDEX_DIR, "index.pkl")
+    if os.path.exists(index_path) and os.path.exists(pkl_path):
+        try:
+            from langchain_community.vectorstores import FAISS as LCFAISS
+            _faiss_vectorstore = LCFAISS.load_local(
+                FAISS_INDEX_DIR,
+                embeddings_model,
+                allow_dangerous_deserialization=True,
+            )
+            logger.info(f"FAISS index loaded from disk: {FAISS_INDEX_DIR}")
+            return _faiss_vectorstore
+        except Exception as e:
+            logger.warning(f"Failed to load FAISS from disk: {e}, will rebuild")
+
+    return None
 
 
 def _build_documents() -> list[Document]:
@@ -233,129 +250,95 @@ def _build_documents() -> list[Document]:
 
 
 def build_vectorstore(force_refresh: bool = False):
-    """Build or refresh the ChromaDB persistent vector store."""
-    global _collection, _vectorstore_ready
+    """Build or refresh the FAISS persistent vector store."""
+    global _faiss_vectorstore, _vectorstore_ready
 
-    if not CHROMADB_AVAILABLE:
-        logger.warning("ChromaDB not available, skipping vectorstore build")
+    if not FAISS_AVAILABLE:
+        logger.warning("FAISS not available, skipping vectorstore build")
         return
 
-    client = _get_chroma_client()
-
     if force_refresh:
-        try:
-            client.delete_collection(COLLECTION_NAME)
-            logger.info("Existing ChromaDB collection deleted for refresh")
-        except Exception:
-            pass
+        import shutil
+        if os.path.exists(FAISS_INDEX_DIR):
+            shutil.rmtree(FAISS_INDEX_DIR)
+            logger.info("Existing FAISS index deleted for refresh")
+        _faiss_vectorstore = None
         _vectorstore_ready = False
 
     if _vectorstore_ready:
         return
 
-    # Check if collection already has data (persisted from previous run)
-    try:
-        _collection = client.get_collection(COLLECTION_NAME)
-        count = _collection.count()
-        if count > 0:
-            _vectorstore_ready = True
-            logger.info(f"ChromaDB collection loaded from disk: {count} documents")
-            return
-    except Exception:
-        pass
+    # Try loading from disk first
+    vs = _get_faiss_vectorstore()
+    if vs is not None:
+        _faiss_vectorstore = vs
+        _vectorstore_ready = True
+        logger.info(f"FAISS vectorstore loaded from disk")
+        return
 
     # Build from scratch
+    from langchain_community.vectorstores import FAISS as LCFAISS
+
     docs = _build_documents()
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
     split_docs = splitter.split_documents(docs)
 
+    # Ensure metadata values are simple types
+    for doc in split_docs:
+        for key in list(doc.metadata.keys()):
+            if doc.metadata[key] is None:
+                doc.metadata[key] = ""
+
     embeddings_model = _get_embeddings()
 
-    _collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        metadata={"hnsw:space": "cosine"},
-    )
+    _faiss_vectorstore = LCFAISS.from_documents(split_docs, embeddings_model)
 
-    # Batch embed and insert
-    batch_size = 50
-    total_added = 0
-    for i in range(0, len(split_docs), batch_size):
-        batch = split_docs[i:i + batch_size]
-        texts = [doc.page_content for doc in batch]
-        metadatas = [doc.metadata for doc in batch]
-        # Ensure metadata values are simple types for ChromaDB
-        for m in metadatas:
-            for key in list(m.keys()):
-                if m[key] is None:
-                    m[key] = ""
-
-        ids = [f"doc_{i + j}" for j in range(len(batch))]
-        vectors = embeddings_model.embed_documents(texts)
-
-        _collection.add(
-            ids=ids,
-            embeddings=vectors,
-            documents=texts,
-            metadatas=metadatas,
-        )
-        total_added += len(batch)
+    # Save to disk for persistence
+    os.makedirs(FAISS_INDEX_DIR, exist_ok=True)
+    _faiss_vectorstore.save_local(FAISS_INDEX_DIR)
 
     _vectorstore_ready = True
-    logger.info(f"ChromaDB vector store built: {total_added} chunks from {len(docs)} source documents")
+    logger.info(f"FAISS vector store built: {len(split_docs)} chunks from {len(docs)} source documents")
 
 
 def _similarity_search(query: str, intent: str, k: int = 7) -> list[tuple[str, float]]:
-    """Search ChromaDB with intent-aware metadata filtering and reranking."""
+    """Search FAISS with intent-aware metadata filtering and reranking."""
     build_vectorstore()
 
-    embeddings_model = _get_embeddings()
-    query_embedding = embeddings_model.embed_query(query)
-
-    start_time = time.time()
-    n_results = min(k, _collection.count())
-    if n_results == 0:
+    if _faiss_vectorstore is None:
         return []
 
-    # Intent-filtered search (more precise for the detected intent)
-    where_filter = {"intent": intent} if intent != "general" else None
+    start_time = time.time()
+
+    # Intent-filtered search using FAISS similarity_search_with_score
+    search_kwargs = {"k": k}
+    if intent != "general":
+        search_kwargs["filter"] = {"intent": intent}
+
     try:
-        results = _collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-            where=where_filter,
-            include=["documents", "distances"],
-        )
+        results = _faiss_vectorstore.similarity_search_with_score(query, **search_kwargs)
     except Exception:
-        results = _collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-            include=["documents", "distances"],
-        )
+        # Fallback without filter
+        results = _faiss_vectorstore.similarity_search_with_score(query, k=k)
 
     # Also fetch unfiltered results for cross-intent context
     try:
-        general_results = _collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(3, _collection.count()),
-            include=["documents", "distances"],
-        )
+        general_results = _faiss_vectorstore.similarity_search_with_score(query, k=min(3, k))
     except Exception:
-        general_results = {"documents": [[]], "distances": [[]]}
+        general_results = []
 
     retrieval_time = (time.time() - start_time) * 1000
 
-    # Merge + deduplicate + convert distances to similarity scores
+    # Merge + deduplicate + convert L2 distances to similarity scores
     seen = set()
     scored_docs = []
-    for docs_list, dists_list in [
-        (results["documents"][0], results["distances"][0]),
-        (general_results["documents"][0], general_results["distances"][0]),
-    ]:
-        for doc, dist in zip(docs_list, dists_list):
-            if doc not in seen:
-                seen.add(doc)
-                score = 1.0 - (dist / 2.0)
-                scored_docs.append((doc, score))
+    for doc, dist in list(results) + list(general_results):
+        text = doc.page_content
+        if text not in seen:
+            seen.add(text)
+            # FAISS returns L2 distance; convert to similarity (higher = better)
+            score = 1.0 / (1.0 + float(dist))
+            scored_docs.append((text, score))
 
     # Rerank by relevance score
     scored_docs.sort(key=lambda x: x[1], reverse=True)
@@ -449,10 +432,10 @@ async def chat(user_id: str, message: str) -> str:
     intent = classify_intent(message)
     logger.info(f"User {user_id[:8]}... intent={intent}: {message[:80]}")
 
-    # Step 2: Retrieve relevant context via ChromaDB
-    # Always attempt retrieval when ChromaDB is available. _similarity_search()
+    # Step 2: Retrieve relevant context via FAISS
+    # Always attempt retrieval when FAISS is available. _similarity_search()
     # will lazily build/load the vector store on first use.
-    if CHROMADB_AVAILABLE:
+    if FAISS_AVAILABLE:
         try:
             scored_docs = await asyncio.to_thread(_similarity_search, message, intent, 5)
             context_parts = [doc for doc, _score in scored_docs]
@@ -493,7 +476,7 @@ async def chat(user_id: str, message: str) -> str:
 
     user_message = f"""[Intention détectée : {intent_hints.get(intent, '')}]
 
-Contexte du menu (informations de la base de données vectorielle ChromaDB) :
+Contexte du menu (informations de la base de données vectorielle) :
 {context}
 
 Question du client : {message}"""

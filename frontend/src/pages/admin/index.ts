@@ -11,7 +11,6 @@ export { default as AdminHealthPage } from './AdminHealthPage';
 export { default as AdminCalendarPage } from './AdminCalendarPage';
 export { default as AdminStockPage } from './AdminStockPage';
 export { default as AdminEventDetailsPage } from './AdminEventDetailsPage';
-export { default as AdminModulePlaceholderPage } from './AdminModulePlaceholderPage';
 export { default as AdminStockMovementsPage } from './AdminStockMovementsPage';
 export { default as AdminStockTakePage } from './AdminStockTakePage';
 export { default as AdminSuppliersPage } from './AdminSuppliersPage';
@@ -23,4 +22,8 @@ export { default as AdminCreditNotesPage } from './AdminCreditNotesPage';
 export { default as AdminAIScannerPage } from './AdminAIScannerPage';
 export { default as AdminReportGeneratorPage } from './AdminReportGeneratorPage';
 export { default as AdminAIReportPage } from './AdminAIReportPage';
+export { default as AdminForecastingPage } from './AdminForecastingPage';
+export { default as AdminKitchenPage } from './AdminKitchenPage';
+export { default as AdminOptimizerPage } from './AdminOptimizerPage';
+export { default as AdminRecommenderEvalPage } from './AdminRecommenderEvalPage';
 
